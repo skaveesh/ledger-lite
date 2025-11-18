@@ -96,4 +96,3 @@ func TestMemoryStoreBudgetCRUD(t *testing.T) {
 		t.Fatal("DeleteBudget() = false, want true")
 	}
 }
-
