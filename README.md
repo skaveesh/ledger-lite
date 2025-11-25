@@ -1,22 +1,22 @@
 # LedgerLite 90-Day Checklist (30 min/day)
 
 ## Week 1: Setup & Domain
-- [ ] Day 1: Create repo, README, Go module.
-- [ ] Day 2: Decide folder structure; add `.gitignore`.
-- [ ] Day 3: Implement simple `main.go` with “LedgerLite”.
-- [ ] Day 4: Define data structs: Transaction, Category, Budget.
-- [ ] Day 5: Create in-memory store interface.
-- [ ] Day 6: Implement in-memory store.
-- [ ] Day 7: Write tests for in-memory store.
+- [x] Day 1: Create repo, README, Go module.
+- [x] Day 2: Decide folder structure; add `.gitignore`.
+- [x] Day 3: Implement simple `main.go` with “LedgerLite”.
+- [x] Day 4: Define data structs: Transaction, Category, Budget.
+- [x] Day 5: Create in-memory store interface.
+- [x] Day 6: Implement in-memory store.
+- [x] Day 7: Write tests for in-memory store.
 
 ## Week 2: SQLite Setup
-- [ ] Day 8: Add SQLite dependency.
-- [ ] Day 9: Write DB init and schema migration.
-- [ ] Day 10: Implement SQLite store interface.
-- [ ] Day 11: Add CRUD for Category in SQLite.
-- [ ] Day 12: Add CRUD for Transaction in SQLite.
-- [ ] Day 13: Add CRUD for Budget in SQLite.
-- [ ] Day 14: Write tests for SQLite store (basic).
+- [x] Day 8: Add SQLite dependency.
+- [x] Day 9: Write DB init and schema migration.
+- [x] Day 10: Implement SQLite store interface.
+- [x] Day 11: Add CRUD for Category in SQLite.
+- [x] Day 12: Add CRUD for Transaction in SQLite.
+- [x] Day 13: Add CRUD for Budget in SQLite.
+- [x] Day 14: Write tests for SQLite store (basic).
 
 ## Week 3: REST API Skeleton
 - [ ] Day 15: Add HTTP server skeleton.
