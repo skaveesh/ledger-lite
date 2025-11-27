@@ -5,7 +5,7 @@ import (
 	"net/http"
 )
 
-func main() {
+func newRouter() http.Handler {
 	mux := http.NewServeMux()
 	mux.HandleFunc("/", func(w http.ResponseWriter, _ *http.Request) {
 		w.WriteHeader(http.StatusOK)
@@ -15,10 +15,13 @@ func main() {
 		w.WriteHeader(http.StatusOK)
 		_, _ = w.Write([]byte("ok"))
 	})
+	return mux
+}
 
+func main() {
 	server := &http.Server{
 		Addr:    ":8080",
-		Handler: mux,
+		Handler: newRouter(),
 	}
 
 	log.Println("api server listening on :8080")
