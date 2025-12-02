@@ -59,13 +59,34 @@ func (a *api) handleCategories(w http.ResponseWriter, r *http.Request) {
 }
 
 func (a *api) handleTransactions(w http.ResponseWriter, r *http.Request) {
-	if r.Method != http.MethodGet {
-		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
-		return
-	}
+	switch r.Method {
+	case http.MethodGet:
+		w.Header().Set("Content-Type", "application/json")
+		_ = json.NewEncoder(w).Encode(a.store.ListTransactions())
+	case http.MethodPost:
+		var req domain.Transaction
+		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+			http.Error(w, "invalid JSON body", http.StatusBadRequest)
+			return
+		}
 
-	w.Header().Set("Content-Type", "application/json")
-	_ = json.NewEncoder(w).Encode(a.store.ListTransactions())
+		created, err := a.store.CreateTransaction(domain.Transaction{
+			CategoryID:  req.CategoryID,
+			AmountCents: req.AmountCents,
+			Description: req.Description,
+			Date:        req.Date,
+		})
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusBadRequest)
+			return
+		}
+
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusCreated)
+		_ = json.NewEncoder(w).Encode(created)
+	default:
+		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
+	}
 }
 
 func main() {
