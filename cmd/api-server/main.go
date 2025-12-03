@@ -93,11 +93,6 @@ func (a *api) handleTransactions(w http.ResponseWriter, r *http.Request) {
 }
 
 func (a *api) handleTransactionByID(w http.ResponseWriter, r *http.Request) {
-	if r.Method != http.MethodGet {
-		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
-		return
-	}
-
 	idPart := strings.TrimPrefix(r.URL.Path, "/transactions/")
 	id, err := strconv.ParseInt(idPart, 10, 64)
 	if err != nil {
@@ -105,14 +100,24 @@ func (a *api) handleTransactionByID(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	item, ok := a.store.GetTransaction(id)
-	if !ok {
-		http.Error(w, "transaction not found", http.StatusNotFound)
-		return
+	switch r.Method {
+	case http.MethodGet:
+		item, ok := a.store.GetTransaction(id)
+		if !ok {
+			http.Error(w, "transaction not found", http.StatusNotFound)
+			return
+		}
+		w.Header().Set("Content-Type", "application/json")
+		_ = json.NewEncoder(w).Encode(item)
+	case http.MethodDelete:
+		if !a.store.DeleteTransaction(id) {
+			http.Error(w, "transaction not found", http.StatusNotFound)
+			return
+		}
+		w.WriteHeader(http.StatusNoContent)
+	default:
+		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
 	}
-
-	w.Header().Set("Content-Type", "application/json")
-	_ = json.NewEncoder(w).Encode(item)
 }
 
 func main() {
