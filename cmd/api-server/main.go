@@ -4,6 +4,8 @@ import (
 	"encoding/json"
 	"log"
 	"net/http"
+	"strconv"
+	"strings"
 
 	"github.com/skaveesh/ledger-lite/internal/domain"
 	"github.com/skaveesh/ledger-lite/internal/store"
@@ -29,6 +31,7 @@ func (a *api) router() http.Handler {
 	})
 	mux.HandleFunc("/categories", a.handleCategories)
 	mux.HandleFunc("/transactions", a.handleTransactions)
+	mux.HandleFunc("/transactions/", a.handleTransactionByID)
 	return mux
 }
 
@@ -87,6 +90,29 @@ func (a *api) handleTransactions(w http.ResponseWriter, r *http.Request) {
 	default:
 		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
 	}
+}
+
+func (a *api) handleTransactionByID(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodGet {
+		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+
+	idPart := strings.TrimPrefix(r.URL.Path, "/transactions/")
+	id, err := strconv.ParseInt(idPart, 10, 64)
+	if err != nil {
+		http.Error(w, "invalid transaction id", http.StatusBadRequest)
+		return
+	}
+
+	item, ok := a.store.GetTransaction(id)
+	if !ok {
+		http.Error(w, "transaction not found", http.StatusNotFound)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	_ = json.NewEncoder(w).Encode(item)
 }
 
 func main() {
