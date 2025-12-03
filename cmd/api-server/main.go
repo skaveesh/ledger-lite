@@ -122,13 +122,34 @@ func (a *api) handleTransactionByID(w http.ResponseWriter, r *http.Request) {
 }
 
 func (a *api) handleBudgets(w http.ResponseWriter, r *http.Request) {
-	if r.Method != http.MethodGet {
-		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
-		return
-	}
+	switch r.Method {
+	case http.MethodGet:
+		w.Header().Set("Content-Type", "application/json")
+		_ = json.NewEncoder(w).Encode(a.store.ListBudgets())
+	case http.MethodPost:
+		var req domain.Budget
+		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+			http.Error(w, "invalid JSON body", http.StatusBadRequest)
+			return
+		}
 
-	w.Header().Set("Content-Type", "application/json")
-	_ = json.NewEncoder(w).Encode(a.store.ListBudgets())
+		created, err := a.store.CreateBudget(domain.Budget{
+			CategoryID:       req.CategoryID,
+			Month:            req.Month,
+			Year:             req.Year,
+			AmountLimitCents: req.AmountLimitCents,
+		})
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusBadRequest)
+			return
+		}
+
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusCreated)
+		_ = json.NewEncoder(w).Encode(created)
+	default:
+		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
+	}
 }
 
 func main() {
