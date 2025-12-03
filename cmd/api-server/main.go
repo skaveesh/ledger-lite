@@ -32,6 +32,7 @@ func (a *api) router() http.Handler {
 	mux.HandleFunc("/categories", a.handleCategories)
 	mux.HandleFunc("/transactions", a.handleTransactions)
 	mux.HandleFunc("/transactions/", a.handleTransactionByID)
+	mux.HandleFunc("/budgets", a.handleBudgets)
 	return mux
 }
 
@@ -118,6 +119,16 @@ func (a *api) handleTransactionByID(w http.ResponseWriter, r *http.Request) {
 	default:
 		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
 	}
+}
+
+func (a *api) handleBudgets(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodGet {
+		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	_ = json.NewEncoder(w).Encode(a.store.ListBudgets())
 }
 
 func main() {
