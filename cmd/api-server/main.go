@@ -17,25 +17,40 @@ type api struct {
 	store store.Store
 }
 
+type apiError struct {
+	Error string `json:"error"`
+}
+
 func newAPI() *api {
 	return &api{store: store.NewMemoryStore()}
 }
 
+func (a *api) withErrorHandling(next http.HandlerFunc) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		defer func() {
+			if rec := recover(); rec != nil {
+				writeJSON(w, http.StatusInternalServerError, apiError{Error: "internal server error"})
+			}
+		}()
+		next(w, r)
+	}
+}
+
 func (a *api) router() http.Handler {
 	mux := http.NewServeMux()
-	mux.HandleFunc("/", func(w http.ResponseWriter, _ *http.Request) {
+	mux.HandleFunc("/", a.withErrorHandling(func(w http.ResponseWriter, _ *http.Request) {
 		w.WriteHeader(http.StatusOK)
 		_, _ = w.Write([]byte("LedgerLite"))
-	})
-	mux.HandleFunc("/health", func(w http.ResponseWriter, _ *http.Request) {
+	}))
+	mux.HandleFunc("/health", a.withErrorHandling(func(w http.ResponseWriter, _ *http.Request) {
 		w.WriteHeader(http.StatusOK)
 		_, _ = w.Write([]byte("ok"))
-	})
-	mux.HandleFunc("/categories", a.handleCategories)
-	mux.HandleFunc("/transactions", a.handleTransactions)
-	mux.HandleFunc("/transactions/", a.handleTransactionByID)
-	mux.HandleFunc("/budgets", a.handleBudgets)
-	mux.HandleFunc("/budgets/", a.handleBudgetByID)
+	}))
+	mux.HandleFunc("/categories", a.withErrorHandling(a.handleCategories))
+	mux.HandleFunc("/transactions", a.withErrorHandling(a.handleTransactions))
+	mux.HandleFunc("/transactions/", a.withErrorHandling(a.handleTransactionByID))
+	mux.HandleFunc("/budgets", a.withErrorHandling(a.handleBudgets))
+	mux.HandleFunc("/budgets/", a.withErrorHandling(a.handleBudgetByID))
 	return mux
 }
 
@@ -97,22 +112,22 @@ func (a *api) handleCategories(w http.ResponseWriter, r *http.Request) {
 	case http.MethodPost:
 		var req domain.Category
 		if err := decodeJSON(r, &req); err != nil {
-			http.Error(w, err.Error(), http.StatusBadRequest)
+			writeJSON(w, http.StatusBadRequest, apiError{Error: err.Error()})
 			return
 		}
 		if err := validateCategoryInput(req); err != nil {
-			http.Error(w, err.Error(), http.StatusBadRequest)
+			writeJSON(w, http.StatusBadRequest, apiError{Error: err.Error()})
 			return
 		}
 
 		created, err := a.store.CreateCategory(domain.Category{Name: strings.TrimSpace(req.Name)})
 		if err != nil {
-			http.Error(w, err.Error(), http.StatusBadRequest)
+			writeJSON(w, http.StatusBadRequest, apiError{Error: err.Error()})
 			return
 		}
 		writeJSON(w, http.StatusCreated, created)
 	default:
-		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
+		writeJSON(w, http.StatusMethodNotAllowed, apiError{Error: "method not allowed"})
 	}
 }
 
@@ -123,11 +138,11 @@ func (a *api) handleTransactions(w http.ResponseWriter, r *http.Request) {
 	case http.MethodPost:
 		var req domain.Transaction
 		if err := decodeJSON(r, &req); err != nil {
-			http.Error(w, err.Error(), http.StatusBadRequest)
+			writeJSON(w, http.StatusBadRequest, apiError{Error: err.Error()})
 			return
 		}
 		if err := validateTransactionInput(req); err != nil {
-			http.Error(w, err.Error(), http.StatusBadRequest)
+			writeJSON(w, http.StatusBadRequest, apiError{Error: err.Error()})
 			return
 		}
 
@@ -138,19 +153,19 @@ func (a *api) handleTransactions(w http.ResponseWriter, r *http.Request) {
 			Date:        req.Date.UTC().Truncate(time.Second),
 		})
 		if err != nil {
-			http.Error(w, err.Error(), http.StatusBadRequest)
+			writeJSON(w, http.StatusBadRequest, apiError{Error: err.Error()})
 			return
 		}
 		writeJSON(w, http.StatusCreated, created)
 	default:
-		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
+		writeJSON(w, http.StatusMethodNotAllowed, apiError{Error: "method not allowed"})
 	}
 }
 
 func (a *api) handleTransactionByID(w http.ResponseWriter, r *http.Request) {
 	id, err := parsePathID(r.URL.Path, "/transactions/")
 	if err != nil {
-		http.Error(w, "invalid transaction id", http.StatusBadRequest)
+		writeJSON(w, http.StatusBadRequest, apiError{Error: "invalid transaction id"})
 		return
 	}
 
@@ -158,18 +173,18 @@ func (a *api) handleTransactionByID(w http.ResponseWriter, r *http.Request) {
 	case http.MethodGet:
 		item, ok := a.store.GetTransaction(id)
 		if !ok {
-			http.Error(w, "transaction not found", http.StatusNotFound)
+			writeJSON(w, http.StatusNotFound, apiError{Error: "transaction not found"})
 			return
 		}
 		writeJSON(w, http.StatusOK, item)
 	case http.MethodDelete:
 		if !a.store.DeleteTransaction(id) {
-			http.Error(w, "transaction not found", http.StatusNotFound)
+			writeJSON(w, http.StatusNotFound, apiError{Error: "transaction not found"})
 			return
 		}
 		w.WriteHeader(http.StatusNoContent)
 	default:
-		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
+		writeJSON(w, http.StatusMethodNotAllowed, apiError{Error: "method not allowed"})
 	}
 }
 
@@ -180,11 +195,11 @@ func (a *api) handleBudgets(w http.ResponseWriter, r *http.Request) {
 	case http.MethodPost:
 		var req domain.Budget
 		if err := decodeJSON(r, &req); err != nil {
-			http.Error(w, err.Error(), http.StatusBadRequest)
+			writeJSON(w, http.StatusBadRequest, apiError{Error: err.Error()})
 			return
 		}
 		if err := validateBudgetInput(req); err != nil {
-			http.Error(w, err.Error(), http.StatusBadRequest)
+			writeJSON(w, http.StatusBadRequest, apiError{Error: err.Error()})
 			return
 		}
 
@@ -195,34 +210,34 @@ func (a *api) handleBudgets(w http.ResponseWriter, r *http.Request) {
 			AmountLimitCents: req.AmountLimitCents,
 		})
 		if err != nil {
-			http.Error(w, err.Error(), http.StatusBadRequest)
+			writeJSON(w, http.StatusBadRequest, apiError{Error: err.Error()})
 			return
 		}
 		writeJSON(w, http.StatusCreated, created)
 	default:
-		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
+		writeJSON(w, http.StatusMethodNotAllowed, apiError{Error: "method not allowed"})
 	}
 }
 
 func (a *api) handleBudgetByID(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPut {
-		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
+		writeJSON(w, http.StatusMethodNotAllowed, apiError{Error: "method not allowed"})
 		return
 	}
 
 	id, err := parsePathID(r.URL.Path, "/budgets/")
 	if err != nil {
-		http.Error(w, "invalid budget id", http.StatusBadRequest)
+		writeJSON(w, http.StatusBadRequest, apiError{Error: "invalid budget id"})
 		return
 	}
 
 	var req domain.Budget
 	if err := decodeJSON(r, &req); err != nil {
-		http.Error(w, err.Error(), http.StatusBadRequest)
+		writeJSON(w, http.StatusBadRequest, apiError{Error: err.Error()})
 		return
 	}
 	if err := validateBudgetInput(req); err != nil {
-		http.Error(w, err.Error(), http.StatusBadRequest)
+		writeJSON(w, http.StatusBadRequest, apiError{Error: err.Error()})
 		return
 	}
 
@@ -233,11 +248,11 @@ func (a *api) handleBudgetByID(w http.ResponseWriter, r *http.Request) {
 		AmountLimitCents: req.AmountLimitCents,
 	})
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusBadRequest)
+		writeJSON(w, http.StatusBadRequest, apiError{Error: err.Error()})
 		return
 	}
 	if !ok {
-		http.Error(w, "budget not found", http.StatusNotFound)
+		writeJSON(w, http.StatusNotFound, apiError{Error: "budget not found"})
 		return
 	}
 
