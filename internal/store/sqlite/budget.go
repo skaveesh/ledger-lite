@@ -61,6 +61,37 @@ func (s *Store) ListBudgets() []domain.Budget {
 	return items
 }
 
+func (s *Store) UpdateBudget(id int64, budget domain.Budget) (domain.Budget, bool, error) {
+	if budget.Month < 1 || budget.Month > 12 {
+		return domain.Budget{}, true, errors.New("budget month must be between 1 and 12")
+	}
+	if budget.Year < 1 {
+		return domain.Budget{}, true, errors.New("budget year must be greater than 0")
+	}
+
+	res, err := s.db.Exec(
+		"UPDATE budgets SET category_id = ?, month = ?, year = ?, amount_limit_cents = ? WHERE id = ?",
+		budget.CategoryID,
+		budget.Month,
+		budget.Year,
+		budget.AmountLimitCents,
+		id,
+	)
+	if err != nil {
+		return domain.Budget{}, true, fmt.Errorf("update budget: %w", err)
+	}
+	affected, err := res.RowsAffected()
+	if err != nil {
+		return domain.Budget{}, true, fmt.Errorf("update budget rows affected: %w", err)
+	}
+	if affected == 0 {
+		return domain.Budget{}, false, nil
+	}
+
+	budget.ID = id
+	return budget, true, nil
+}
+
 func (s *Store) DeleteBudget(id int64) bool {
 	res, err := s.db.Exec("DELETE FROM budgets WHERE id = ?", id)
 	if err != nil {

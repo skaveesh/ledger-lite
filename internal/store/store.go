@@ -17,5 +17,6 @@ type Store interface {
 	CreateBudget(budget domain.Budget) (domain.Budget, error)
 	GetBudget(id int64) (domain.Budget, bool)
 	ListBudgets() []domain.Budget
+	UpdateBudget(id int64, budget domain.Budget) (domain.Budget, bool, error)
 	DeleteBudget(id int64) bool
 }

@@ -33,6 +33,7 @@ func (a *api) router() http.Handler {
 	mux.HandleFunc("/transactions", a.handleTransactions)
 	mux.HandleFunc("/transactions/", a.handleTransactionByID)
 	mux.HandleFunc("/budgets", a.handleBudgets)
+	mux.HandleFunc("/budgets/", a.handleBudgetByID)
 	return mux
 }
 
@@ -150,6 +151,44 @@ func (a *api) handleBudgets(w http.ResponseWriter, r *http.Request) {
 	default:
 		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
 	}
+}
+
+func (a *api) handleBudgetByID(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPut {
+		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+
+	idPart := strings.TrimPrefix(r.URL.Path, "/budgets/")
+	id, err := strconv.ParseInt(idPart, 10, 64)
+	if err != nil {
+		http.Error(w, "invalid budget id", http.StatusBadRequest)
+		return
+	}
+
+	var req domain.Budget
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		http.Error(w, "invalid JSON body", http.StatusBadRequest)
+		return
+	}
+
+	updated, ok, err := a.store.UpdateBudget(id, domain.Budget{
+		CategoryID:       req.CategoryID,
+		Month:            req.Month,
+		Year:             req.Year,
+		AmountLimitCents: req.AmountLimitCents,
+	})
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+	if !ok {
+		http.Error(w, "budget not found", http.StatusNotFound)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	_ = json.NewEncoder(w).Encode(updated)
 }
 
 func main() {

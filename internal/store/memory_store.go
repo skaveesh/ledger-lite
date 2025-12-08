@@ -168,6 +168,25 @@ func (s *MemoryStore) ListBudgets() []domain.Budget {
 	return items
 }
 
+func (s *MemoryStore) UpdateBudget(id int64, budget domain.Budget) (domain.Budget, bool, error) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
+	if _, ok := s.budgets[id]; !ok {
+		return domain.Budget{}, false, nil
+	}
+	if budget.Month < 1 || budget.Month > 12 {
+		return domain.Budget{}, true, errBudgetMonthInvalid
+	}
+	if budget.Year < 1 {
+		return domain.Budget{}, true, errBudgetYearInvalid
+	}
+
+	budget.ID = id
+	s.budgets[id] = budget
+	return budget, true, nil
+}
+
 func (s *MemoryStore) DeleteBudget(id int64) bool {
 	s.mu.Lock()
 	defer s.mu.Unlock()
