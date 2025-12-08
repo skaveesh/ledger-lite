@@ -2,10 +2,12 @@ package main
 
 import (
 	"encoding/json"
+	"errors"
 	"log"
 	"net/http"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/skaveesh/ledger-lite/internal/domain"
 	"github.com/skaveesh/ledger-lite/internal/store"
@@ -37,27 +39,78 @@ func (a *api) router() http.Handler {
 	return mux
 }
 
+func writeJSON(w http.ResponseWriter, status int, v any) {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(status)
+	_ = json.NewEncoder(w).Encode(v)
+}
+
+func decodeJSON(r *http.Request, out any) error {
+	if err := json.NewDecoder(r.Body).Decode(out); err != nil {
+		return errors.New("invalid JSON body")
+	}
+	return nil
+}
+
+func parsePathID(path string, prefix string) (int64, error) {
+	idPart := strings.TrimPrefix(path, prefix)
+	if idPart == "" {
+		return 0, errors.New("missing id")
+	}
+	return strconv.ParseInt(idPart, 10, 64)
+}
+
+func validateCategoryInput(c domain.Category) error {
+	if strings.TrimSpace(c.Name) == "" {
+		return errors.New("category name is required")
+	}
+	return nil
+}
+
+func validateTransactionInput(t domain.Transaction) error {
+	if t.Date.IsZero() {
+		return errors.New("transaction date is required")
+	}
+	if t.AmountCents == 0 {
+		return errors.New("transaction amount must be non-zero")
+	}
+	return nil
+}
+
+func validateBudgetInput(b domain.Budget) error {
+	if b.Month < 1 || b.Month > 12 {
+		return errors.New("budget month must be between 1 and 12")
+	}
+	if b.Year < 1 {
+		return errors.New("budget year must be greater than 0")
+	}
+	if b.AmountLimitCents <= 0 {
+		return errors.New("budget amount limit must be greater than 0")
+	}
+	return nil
+}
+
 func (a *api) handleCategories(w http.ResponseWriter, r *http.Request) {
 	switch r.Method {
 	case http.MethodGet:
-		w.Header().Set("Content-Type", "application/json")
-		_ = json.NewEncoder(w).Encode(a.store.ListCategories())
+		writeJSON(w, http.StatusOK, a.store.ListCategories())
 	case http.MethodPost:
 		var req domain.Category
-		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-			http.Error(w, "invalid JSON body", http.StatusBadRequest)
+		if err := decodeJSON(r, &req); err != nil {
+			http.Error(w, err.Error(), http.StatusBadRequest)
 			return
 		}
-
-		created, err := a.store.CreateCategory(domain.Category{Name: req.Name})
-		if err != nil {
+		if err := validateCategoryInput(req); err != nil {
 			http.Error(w, err.Error(), http.StatusBadRequest)
 			return
 		}
 
-		w.Header().Set("Content-Type", "application/json")
-		w.WriteHeader(http.StatusCreated)
-		_ = json.NewEncoder(w).Encode(created)
+		created, err := a.store.CreateCategory(domain.Category{Name: strings.TrimSpace(req.Name)})
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusBadRequest)
+			return
+		}
+		writeJSON(w, http.StatusCreated, created)
 	default:
 		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
 	}
@@ -66,12 +119,15 @@ func (a *api) handleCategories(w http.ResponseWriter, r *http.Request) {
 func (a *api) handleTransactions(w http.ResponseWriter, r *http.Request) {
 	switch r.Method {
 	case http.MethodGet:
-		w.Header().Set("Content-Type", "application/json")
-		_ = json.NewEncoder(w).Encode(a.store.ListTransactions())
+		writeJSON(w, http.StatusOK, a.store.ListTransactions())
 	case http.MethodPost:
 		var req domain.Transaction
-		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-			http.Error(w, "invalid JSON body", http.StatusBadRequest)
+		if err := decodeJSON(r, &req); err != nil {
+			http.Error(w, err.Error(), http.StatusBadRequest)
+			return
+		}
+		if err := validateTransactionInput(req); err != nil {
+			http.Error(w, err.Error(), http.StatusBadRequest)
 			return
 		}
 
@@ -79,24 +135,20 @@ func (a *api) handleTransactions(w http.ResponseWriter, r *http.Request) {
 			CategoryID:  req.CategoryID,
 			AmountCents: req.AmountCents,
 			Description: req.Description,
-			Date:        req.Date,
+			Date:        req.Date.UTC().Truncate(time.Second),
 		})
 		if err != nil {
 			http.Error(w, err.Error(), http.StatusBadRequest)
 			return
 		}
-
-		w.Header().Set("Content-Type", "application/json")
-		w.WriteHeader(http.StatusCreated)
-		_ = json.NewEncoder(w).Encode(created)
+		writeJSON(w, http.StatusCreated, created)
 	default:
 		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
 	}
 }
 
 func (a *api) handleTransactionByID(w http.ResponseWriter, r *http.Request) {
-	idPart := strings.TrimPrefix(r.URL.Path, "/transactions/")
-	id, err := strconv.ParseInt(idPart, 10, 64)
+	id, err := parsePathID(r.URL.Path, "/transactions/")
 	if err != nil {
 		http.Error(w, "invalid transaction id", http.StatusBadRequest)
 		return
@@ -109,8 +161,7 @@ func (a *api) handleTransactionByID(w http.ResponseWriter, r *http.Request) {
 			http.Error(w, "transaction not found", http.StatusNotFound)
 			return
 		}
-		w.Header().Set("Content-Type", "application/json")
-		_ = json.NewEncoder(w).Encode(item)
+		writeJSON(w, http.StatusOK, item)
 	case http.MethodDelete:
 		if !a.store.DeleteTransaction(id) {
 			http.Error(w, "transaction not found", http.StatusNotFound)
@@ -125,12 +176,15 @@ func (a *api) handleTransactionByID(w http.ResponseWriter, r *http.Request) {
 func (a *api) handleBudgets(w http.ResponseWriter, r *http.Request) {
 	switch r.Method {
 	case http.MethodGet:
-		w.Header().Set("Content-Type", "application/json")
-		_ = json.NewEncoder(w).Encode(a.store.ListBudgets())
+		writeJSON(w, http.StatusOK, a.store.ListBudgets())
 	case http.MethodPost:
 		var req domain.Budget
-		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-			http.Error(w, "invalid JSON body", http.StatusBadRequest)
+		if err := decodeJSON(r, &req); err != nil {
+			http.Error(w, err.Error(), http.StatusBadRequest)
+			return
+		}
+		if err := validateBudgetInput(req); err != nil {
+			http.Error(w, err.Error(), http.StatusBadRequest)
 			return
 		}
 
@@ -144,10 +198,7 @@ func (a *api) handleBudgets(w http.ResponseWriter, r *http.Request) {
 			http.Error(w, err.Error(), http.StatusBadRequest)
 			return
 		}
-
-		w.Header().Set("Content-Type", "application/json")
-		w.WriteHeader(http.StatusCreated)
-		_ = json.NewEncoder(w).Encode(created)
+		writeJSON(w, http.StatusCreated, created)
 	default:
 		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
 	}
@@ -159,16 +210,19 @@ func (a *api) handleBudgetByID(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	idPart := strings.TrimPrefix(r.URL.Path, "/budgets/")
-	id, err := strconv.ParseInt(idPart, 10, 64)
+	id, err := parsePathID(r.URL.Path, "/budgets/")
 	if err != nil {
 		http.Error(w, "invalid budget id", http.StatusBadRequest)
 		return
 	}
 
 	var req domain.Budget
-	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		http.Error(w, "invalid JSON body", http.StatusBadRequest)
+	if err := decodeJSON(r, &req); err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+	if err := validateBudgetInput(req); err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
 
@@ -187,8 +241,7 @@ func (a *api) handleBudgetByID(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	w.Header().Set("Content-Type", "application/json")
-	_ = json.NewEncoder(w).Encode(updated)
+	writeJSON(w, http.StatusOK, updated)
 }
 
 func main() {
