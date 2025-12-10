@@ -19,22 +19,22 @@
 - [x] Day 14: Write tests for SQLite store (basic).
 
 ## Week 3: REST API Skeleton
-- [ ] Day 15: Add HTTP server skeleton.
-- [ ] Day 16: Implement `/health`.
-- [ ] Day 17: Add router library (chi or std).
-- [ ] Day 18: Add `/categories` GET.
-- [ ] Day 19: Add `/categories` POST.
-- [ ] Day 20: Add `/transactions` GET.
-- [ ] Day 21: Add `/transactions` POST.
+- [x] Day 15: Add HTTP server skeleton.
+- [x] Day 16: Implement `/health`.
+- [x] Day 17: Add router library (chi or std).
+- [x] Day 18: Add `/categories` GET.
+- [x] Day 19: Add `/categories` POST.
+- [x] Day 20: Add `/transactions` GET.
+- [x] Day 21: Add `/transactions` POST.
 
 ## Week 4: API Continued
-- [ ] Day 22: Add `/transactions/{id}` GET.
-- [ ] Day 23: Add `/transactions/{id}` DELETE.
-- [ ] Day 24: Add `/budgets` GET.
-- [ ] Day 25: Add `/budgets` POST.
-- [ ] Day 26: Add `/budgets/{id}` PUT.
-- [ ] Day 27: Add validation helpers.
-- [ ] Day 28: Add error handling middleware.
+- [x] Day 22: Add `/transactions/{id}` GET.
+- [x] Day 23: Add `/transactions/{id}` DELETE.
+- [x] Day 24: Add `/budgets` GET.
+- [x] Day 25: Add `/budgets` POST.
+- [x] Day 26: Add `/budgets/{id}` PUT.
+- [x] Day 27: Add validation helpers.
+- [x] Day 28: Add error handling middleware.
 
 ## Week 5: API Tests
 - [ ] Day 29: Add HTTP test setup helpers.
