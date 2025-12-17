@@ -134,6 +134,16 @@ func runTransaction(dbPath string, args []string) error {
 
 		fmt.Printf("transaction created: id=%d category_id=%d amount_cents=%d\n", transaction.ID, transaction.CategoryID, transaction.AmountCents)
 		return nil
+	case "list":
+		transactions := s.ListTransactions()
+		if len(transactions) == 0 {
+			fmt.Println("no transactions")
+			return nil
+		}
+		for _, tr := range transactions {
+			fmt.Printf("%d\t%d\t%d\t%s\t%s\n", tr.ID, tr.CategoryID, tr.AmountCents, tr.Description, tr.Date.Format(time.RFC3339))
+		}
+		return nil
 	default:
 		return fmt.Errorf("unknown transaction subcommand: %s", args[0])
 	}
