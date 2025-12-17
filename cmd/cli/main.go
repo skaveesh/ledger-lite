@@ -4,6 +4,7 @@ import (
 	"flag"
 	"fmt"
 	"os"
+	"time"
 
 	"github.com/skaveesh/ledger-lite/internal/domain"
 	"github.com/skaveesh/ledger-lite/internal/store/sqlite"
@@ -91,9 +92,51 @@ func runCategory(dbPath string, args []string) error {
 }
 
 func runTransaction(dbPath string, args []string) error {
-	_ = dbPath
-	_ = args
-	return fmt.Errorf("transaction command not implemented")
+	if len(args) == 0 {
+		return fmt.Errorf("missing transaction subcommand")
+	}
+
+	s, err := sqlite.New(dbPath)
+	if err != nil {
+		return err
+	}
+	defer func() { _ = s.Close() }()
+
+	switch args[0] {
+	case "add":
+		addFS := flag.NewFlagSet("transaction add", flag.ContinueOnError)
+		categoryID := addFS.Int64("category-id", 0, "category id")
+		amountCents := addFS.Int64("amount-cents", 0, "amount in cents")
+		description := addFS.String("description", "", "transaction description")
+		dateStr := addFS.String("date", "", "transaction date in RFC3339")
+		addFS.SetOutput(os.Stdout)
+		if err := addFS.Parse(args[1:]); err != nil {
+			return err
+		}
+		if *categoryID == 0 || *amountCents == 0 || *dateStr == "" {
+			return fmt.Errorf("--category-id, --amount-cents and --date are required")
+		}
+
+		parsedDate, err := time.Parse(time.RFC3339, *dateStr)
+		if err != nil {
+			return fmt.Errorf("invalid --date, expected RFC3339: %w", err)
+		}
+
+		transaction, err := s.CreateTransaction(domain.Transaction{
+			CategoryID:  *categoryID,
+			AmountCents: *amountCents,
+			Description: *description,
+			Date:        parsedDate,
+		})
+		if err != nil {
+			return err
+		}
+
+		fmt.Printf("transaction created: id=%d category_id=%d amount_cents=%d\n", transaction.ID, transaction.CategoryID, transaction.AmountCents)
+		return nil
+	default:
+		return fmt.Errorf("unknown transaction subcommand: %s", args[0])
+	}
 }
 
 func runBudget(dbPath string, args []string) error {
