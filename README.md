@@ -37,13 +37,13 @@
 - [x] Day 28: Add error handling middleware.
 
 ## Week 5: API Tests
-- [ ] Day 29: Add HTTP test setup helpers.
-- [ ] Day 30: Test `/categories` GET/POST.
-- [ ] Day 31: Test `/transactions` GET/POST.
-- [ ] Day 32: Test `/transactions/{id}` GET/DELETE.
-- [ ] Day 33: Test `/budgets` GET/POST.
-- [ ] Day 34: Test `/budgets/{id}` PUT.
-- [ ] Day 35: Add test data builders.
+- [x] Day 29: Add HTTP test setup helpers.
+- [x] Day 30: Test `/categories` GET/POST.
+- [x] Day 31: Test `/transactions` GET/POST.
+- [x] Day 32: Test `/transactions/{id}` GET/DELETE.
+- [x] Day 33: Test `/budgets` GET/POST.
+- [x] Day 34: Test `/budgets/{id}` PUT.
+- [x] Day 35: Add test data builders.
 
 ## Week 6: CLI Basics
 - [ ] Day 36: Add CLI skeleton (cobra or flag).
