@@ -51,6 +51,12 @@ func runCategory(dbPath string, args []string) error {
 		return fmt.Errorf("missing category subcommand")
 	}
 
+	s, err := sqlite.New(dbPath)
+	if err != nil {
+		return err
+	}
+	defer func() { _ = s.Close() }()
+
 	switch args[0] {
 	case "add":
 		addFS := flag.NewFlagSet("category add", flag.ContinueOnError)
@@ -63,17 +69,21 @@ func runCategory(dbPath string, args []string) error {
 			return fmt.Errorf("--name is required")
 		}
 
-		s, err := sqlite.New(dbPath)
-		if err != nil {
-			return err
-		}
-		defer func() { _ = s.Close() }()
-
 		category, err := s.CreateCategory(domain.Category{Name: *name})
 		if err != nil {
 			return err
 		}
 		fmt.Printf("category created: id=%d name=%s\n", category.ID, category.Name)
+		return nil
+	case "list":
+		categories := s.ListCategories()
+		if len(categories) == 0 {
+			fmt.Println("no categories")
+			return nil
+		}
+		for _, c := range categories {
+			fmt.Printf("%d\t%s\n", c.ID, c.Name)
+		}
 		return nil
 	default:
 		return fmt.Errorf("unknown category subcommand: %s", args[0])
