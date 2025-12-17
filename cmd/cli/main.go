@@ -4,6 +4,9 @@ import (
 	"flag"
 	"fmt"
 	"os"
+
+	"github.com/skaveesh/ledger-lite/internal/domain"
+	"github.com/skaveesh/ledger-lite/internal/store/sqlite"
 )
 
 func main() {
@@ -21,7 +24,6 @@ func run(args []string) error {
 	if err := fs.Parse(args); err != nil {
 		return err
 	}
-	_ = dbPath
 
 	remaining := fs.Args()
 	if len(remaining) == 0 {
@@ -31,11 +33,11 @@ func run(args []string) error {
 
 	switch remaining[0] {
 	case "category":
-		return runCategory(remaining[1:])
+		return runCategory(*dbPath, remaining[1:])
 	case "transaction":
-		return runTransaction(remaining[1:])
+		return runTransaction(*dbPath, remaining[1:])
 	case "budget":
-		return runBudget(remaining[1:])
+		return runBudget(*dbPath, remaining[1:])
 	case "help":
 		printUsage()
 		return nil
@@ -44,17 +46,48 @@ func run(args []string) error {
 	}
 }
 
-func runCategory(args []string) error {
-	_ = args
-	return fmt.Errorf("category command not implemented")
+func runCategory(dbPath string, args []string) error {
+	if len(args) == 0 {
+		return fmt.Errorf("missing category subcommand")
+	}
+
+	switch args[0] {
+	case "add":
+		addFS := flag.NewFlagSet("category add", flag.ContinueOnError)
+		name := addFS.String("name", "", "category name")
+		addFS.SetOutput(os.Stdout)
+		if err := addFS.Parse(args[1:]); err != nil {
+			return err
+		}
+		if *name == "" {
+			return fmt.Errorf("--name is required")
+		}
+
+		s, err := sqlite.New(dbPath)
+		if err != nil {
+			return err
+		}
+		defer func() { _ = s.Close() }()
+
+		category, err := s.CreateCategory(domain.Category{Name: *name})
+		if err != nil {
+			return err
+		}
+		fmt.Printf("category created: id=%d name=%s\n", category.ID, category.Name)
+		return nil
+	default:
+		return fmt.Errorf("unknown category subcommand: %s", args[0])
+	}
 }
 
-func runTransaction(args []string) error {
+func runTransaction(dbPath string, args []string) error {
+	_ = dbPath
 	_ = args
 	return fmt.Errorf("transaction command not implemented")
 }
 
-func runBudget(args []string) error {
+func runBudget(dbPath string, args []string) error {
+	_ = dbPath
 	_ = args
 	return fmt.Errorf("budget command not implemented")
 }
