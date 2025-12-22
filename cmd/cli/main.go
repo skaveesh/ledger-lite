@@ -150,9 +150,46 @@ func runTransaction(dbPath string, args []string) error {
 }
 
 func runBudget(dbPath string, args []string) error {
-	_ = dbPath
-	_ = args
-	return fmt.Errorf("budget command not implemented")
+	if len(args) == 0 {
+		return fmt.Errorf("missing budget subcommand")
+	}
+
+	s, err := sqlite.New(dbPath)
+	if err != nil {
+		return err
+	}
+	defer func() { _ = s.Close() }()
+
+	switch args[0] {
+	case "set":
+		setFS := flag.NewFlagSet("budget set", flag.ContinueOnError)
+		categoryID := setFS.Int64("category-id", 0, "category id")
+		month := setFS.Int("month", 0, "month number (1-12)")
+		year := setFS.Int("year", 0, "year")
+		amountLimitCents := setFS.Int64("amount-limit-cents", 0, "budget amount limit in cents")
+		setFS.SetOutput(os.Stdout)
+		if err := setFS.Parse(args[1:]); err != nil {
+			return err
+		}
+		if *categoryID == 0 || *month == 0 || *year == 0 || *amountLimitCents == 0 {
+			return fmt.Errorf("--category-id, --month, --year and --amount-limit-cents are required")
+		}
+
+		budget, err := s.CreateBudget(domain.Budget{
+			CategoryID:       *categoryID,
+			Month:            *month,
+			Year:             *year,
+			AmountLimitCents: *amountLimitCents,
+		})
+		if err != nil {
+			return err
+		}
+
+		fmt.Printf("budget set: id=%d category_id=%d month=%d year=%d amount_limit_cents=%d\n", budget.ID, budget.CategoryID, budget.Month, budget.Year, budget.AmountLimitCents)
+		return nil
+	default:
+		return fmt.Errorf("unknown budget subcommand: %s", args[0])
+	}
 }
 
 func printUsage() {
