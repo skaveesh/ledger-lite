@@ -115,3 +115,23 @@
 - [ ] Day 88: Improve error types.
 - [ ] Day 89: Optimize query performance.
 - [ ] Day 90: Final cleanup & backlog list.
+
+## CLI Help
+Use the CLI with an explicit SQLite path (or omit `--db` to use `ledgerlite.db` in the current folder).
+
+```bash
+# show general help
+go run ./cmd/cli -- help
+
+# categories
+go run ./cmd/cli -- category add --name Food
+go run ./cmd/cli -- category list
+
+# transactions
+# date must be RFC3339
+go run ./cmd/cli -- transaction add --category-id 1 --amount-cents 4500 --description "Groceries" --date "2026-03-10T12:00:00Z"
+go run ./cmd/cli -- transaction list
+
+# budgets
+go run ./cmd/cli -- budget set --category-id 1 --month 3 --year 2026 --amount-limit-cents 150000
+```
