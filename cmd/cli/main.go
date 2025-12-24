@@ -224,6 +224,16 @@ func runBudget(dbPath string, args []string) error {
 
 		fmt.Printf("budget set: id=%d category_id=%d month=%d year=%d amount_limit_cents=%d\n", budget.ID, budget.CategoryID, budget.Month, budget.Year, budget.AmountLimitCents)
 		return nil
+	case "list":
+		budgets := s.ListBudgets()
+		if len(budgets) == 0 {
+			fmt.Println("no budgets")
+			return nil
+		}
+		for _, b := range budgets {
+			fmt.Printf("%d\t%d\t%d\t%d\t%d\n", b.ID, b.CategoryID, b.Month, b.Year, b.AmountLimitCents)
+		}
+		return nil
 	default:
 		return fmt.Errorf("unknown budget subcommand: %s", args[0])
 	}
