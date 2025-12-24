@@ -46,13 +46,13 @@
 - [x] Day 35: Add test data builders.
 
 ## Week 6: CLI Basics
-- [ ] Day 36: Add CLI skeleton (cobra or flag).
-- [ ] Day 37: Add `category add` command.
-- [ ] Day 38: Add `category list` command.
-- [ ] Day 39: Add `transaction add` command.
-- [ ] Day 40: Add `transaction list` command.
-- [ ] Day 41: Add `budget set` command.
-- [ ] Day 42: Add CLI help docs in README.
+- [x] Day 36: Add CLI skeleton (cobra or flag).
+- [x] Day 37: Add `category add` command.
+- [x] Day 38: Add `category list` command.
+- [x] Day 39: Add `transaction add` command.
+- [x] Day 40: Add `transaction list` command.
+- [x] Day 41: Add `budget set` command.
+- [x] Day 42: Add CLI help docs in README.
 
 ## Week 7: CLI Improvements
 - [ ] Day 43: Add `transaction delete` command.

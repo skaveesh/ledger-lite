@@ -144,6 +144,21 @@ func runTransaction(dbPath string, args []string) error {
 			fmt.Printf("%d\t%d\t%d\t%s\t%s\n", tr.ID, tr.CategoryID, tr.AmountCents, tr.Description, tr.Date.Format(time.RFC3339))
 		}
 		return nil
+	case "delete":
+		delFS := flag.NewFlagSet("transaction delete", flag.ContinueOnError)
+		id := delFS.Int64("id", 0, "transaction id")
+		delFS.SetOutput(os.Stdout)
+		if err := delFS.Parse(args[1:]); err != nil {
+			return err
+		}
+		if *id == 0 {
+			return fmt.Errorf("--id is required")
+		}
+		if !s.DeleteTransaction(*id) {
+			return fmt.Errorf("transaction %d not found", *id)
+		}
+		fmt.Printf("transaction deleted: id=%d\n", *id)
+		return nil
 	default:
 		return fmt.Errorf("unknown transaction subcommand: %s", args[0])
 	}
