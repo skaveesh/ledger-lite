@@ -75,6 +75,22 @@ func (s *MemoryStore) ListCategories() []domain.Category {
 	return items
 }
 
+func (s *MemoryStore) UpdateCategory(id int64, category domain.Category) (domain.Category, bool, error) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
+	if _, ok := s.categories[id]; !ok {
+		return domain.Category{}, false, nil
+	}
+	if category.Name == "" {
+		return domain.Category{}, true, errCategoryNameRequired
+	}
+
+	category.ID = id
+	s.categories[id] = category
+	return category, true, nil
+}
+
 func (s *MemoryStore) DeleteCategory(id int64) bool {
 	s.mu.Lock()
 	defer s.mu.Unlock()

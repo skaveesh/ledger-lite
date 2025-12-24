@@ -34,7 +34,7 @@ func performRequest(t *testing.T, h http.Handler, method, path string, body any)
 	return rr
 }
 
-func decodeJSON[T any](t *testing.T, rr *httptest.ResponseRecorder) T {
+func decodeJSONResponse[T any](t *testing.T, rr *httptest.ResponseRecorder) T {
 	t.Helper()
 
 	var out T

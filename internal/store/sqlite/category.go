@@ -52,6 +52,27 @@ func (s *Store) ListCategories() []domain.Category {
 	return items
 }
 
+func (s *Store) UpdateCategory(id int64, category domain.Category) (domain.Category, bool, error) {
+	if category.Name == "" {
+		return domain.Category{}, true, errors.New("category name is required")
+	}
+
+	res, err := s.db.Exec("UPDATE categories SET name = ? WHERE id = ?", category.Name, id)
+	if err != nil {
+		return domain.Category{}, true, fmt.Errorf("update category: %w", err)
+	}
+	affected, err := res.RowsAffected()
+	if err != nil {
+		return domain.Category{}, true, fmt.Errorf("update category rows affected: %w", err)
+	}
+	if affected == 0 {
+		return domain.Category{}, false, nil
+	}
+
+	category.ID = id
+	return category, true, nil
+}
+
 func (s *Store) DeleteCategory(id int64) bool {
 	res, err := s.db.Exec("DELETE FROM categories WHERE id = ?", id)
 	if err != nil {

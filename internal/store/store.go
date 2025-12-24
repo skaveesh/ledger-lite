@@ -7,6 +7,7 @@ type Store interface {
 	CreateCategory(category domain.Category) (domain.Category, error)
 	GetCategory(id int64) (domain.Category, bool)
 	ListCategories() []domain.Category
+	UpdateCategory(id int64, category domain.Category) (domain.Category, bool, error)
 	DeleteCategory(id int64) bool
 
 	CreateTransaction(transaction domain.Transaction) (domain.Transaction, error)

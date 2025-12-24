@@ -22,14 +22,14 @@ func TestTransactionsIDGetAndDelete(t *testing.T) {
 	if createResp.Code != http.StatusCreated {
 		t.Fatalf("POST /transactions status = %d, want %d", createResp.Code, http.StatusCreated)
 	}
-	created := decodeJSON[domain.Transaction](t, createResp)
+	created := decodeJSONResponse[domain.Transaction](t, createResp)
 
 	getPath := fmt.Sprintf("/transactions/%d", created.ID)
 	getResp := performRequest(t, router, http.MethodGet, getPath, nil)
 	if getResp.Code != http.StatusOK {
 		t.Fatalf("GET %s status = %d, want %d", getPath, getResp.Code, http.StatusOK)
 	}
-	fetched := decodeJSON[domain.Transaction](t, getResp)
+	fetched := decodeJSONResponse[domain.Transaction](t, getResp)
 	if fetched.ID != created.ID {
 		t.Fatalf("GET %s id = %d, want %d", getPath, fetched.ID, created.ID)
 	}

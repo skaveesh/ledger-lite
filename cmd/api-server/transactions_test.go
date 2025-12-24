@@ -16,7 +16,7 @@ func TestTransactionsGetEmpty(t *testing.T) {
 		t.Fatalf("GET /transactions status = %d, want %d", rr.Code, http.StatusOK)
 	}
 
-	got := decodeJSON[[]domain.Transaction](t, rr)
+	got := decodeJSONResponse[[]domain.Transaction](t, rr)
 	if len(got) != 0 {
 		t.Fatalf("GET /transactions len = %d, want 0", len(got))
 	}
@@ -35,7 +35,7 @@ func TestTransactionsPostThenGet(t *testing.T) {
 	if createResp.Code != http.StatusCreated {
 		t.Fatalf("POST /transactions status = %d, want %d", createResp.Code, http.StatusCreated)
 	}
-	created := decodeJSON[domain.Transaction](t, createResp)
+	created := decodeJSONResponse[domain.Transaction](t, createResp)
 	if created.ID == 0 {
 		t.Fatal("POST /transactions returned ID 0")
 	}
@@ -44,7 +44,7 @@ func TestTransactionsPostThenGet(t *testing.T) {
 	if listResp.Code != http.StatusOK {
 		t.Fatalf("GET /transactions status = %d, want %d", listResp.Code, http.StatusOK)
 	}
-	list := decodeJSON[[]domain.Transaction](t, listResp)
+	list := decodeJSONResponse[[]domain.Transaction](t, listResp)
 	if len(list) != 1 || list[0].AmountCents != 4500 {
 		t.Fatalf("GET /transactions response = %+v, want one transaction amount 4500", list)
 	}

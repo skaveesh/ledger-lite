@@ -15,7 +15,7 @@ func TestBudgetsGetEmpty(t *testing.T) {
 		t.Fatalf("GET /budgets status = %d, want %d", rr.Code, http.StatusOK)
 	}
 
-	got := decodeJSON[[]domain.Budget](t, rr)
+	got := decodeJSONResponse[[]domain.Budget](t, rr)
 	if len(got) != 0 {
 		t.Fatalf("GET /budgets len = %d, want 0", len(got))
 	}
@@ -33,7 +33,7 @@ func TestBudgetsPostThenGet(t *testing.T) {
 	if createResp.Code != http.StatusCreated {
 		t.Fatalf("POST /budgets status = %d, want %d", createResp.Code, http.StatusCreated)
 	}
-	created := decodeJSON[domain.Budget](t, createResp)
+	created := decodeJSONResponse[domain.Budget](t, createResp)
 	if created.ID == 0 {
 		t.Fatal("POST /budgets returned ID 0")
 	}
@@ -42,7 +42,7 @@ func TestBudgetsPostThenGet(t *testing.T) {
 	if listResp.Code != http.StatusOK {
 		t.Fatalf("GET /budgets status = %d, want %d", listResp.Code, http.StatusOK)
 	}
-	list := decodeJSON[[]domain.Budget](t, listResp)
+	list := decodeJSONResponse[[]domain.Budget](t, listResp)
 	if len(list) != 1 || list[0].AmountLimitCents != 150000 {
 		t.Fatalf("GET /budgets response = %+v, want one budget amount 150000", list)
 	}

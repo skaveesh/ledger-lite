@@ -86,6 +86,28 @@ func runCategory(dbPath string, args []string) error {
 			fmt.Printf("%d\t%s\n", c.ID, c.Name)
 		}
 		return nil
+	case "update":
+		updateFS := flag.NewFlagSet("category update", flag.ContinueOnError)
+		id := updateFS.Int64("id", 0, "category id")
+		name := updateFS.String("name", "", "updated category name")
+		updateFS.SetOutput(os.Stdout)
+		if err := updateFS.Parse(args[1:]); err != nil {
+			return err
+		}
+		if *id == 0 || *name == "" {
+			return fmt.Errorf("--id and --name are required")
+		}
+
+		updated, ok, err := s.UpdateCategory(*id, domain.Category{Name: *name})
+		if err != nil {
+			return err
+		}
+		if !ok {
+			return fmt.Errorf("category %d not found", *id)
+		}
+
+		fmt.Printf("category updated: id=%d name=%s\n", updated.ID, updated.Name)
+		return nil
 	default:
 		return fmt.Errorf("unknown category subcommand: %s", args[0])
 	}

@@ -20,7 +20,7 @@ func TestBudgetsIDPut(t *testing.T) {
 	if createResp.Code != http.StatusCreated {
 		t.Fatalf("POST /budgets status = %d, want %d", createResp.Code, http.StatusCreated)
 	}
-	created := decodeJSON[domain.Budget](t, createResp)
+	created := decodeJSONResponse[domain.Budget](t, createResp)
 
 	putPath := fmt.Sprintf("/budgets/%d", created.ID)
 	putResp := performRequest(t, router, http.MethodPut, putPath, map[string]any{
@@ -32,7 +32,7 @@ func TestBudgetsIDPut(t *testing.T) {
 	if putResp.Code != http.StatusOK {
 		t.Fatalf("PUT %s status = %d, want %d", putPath, putResp.Code, http.StatusOK)
 	}
-	updated := decodeJSON[domain.Budget](t, putResp)
+	updated := decodeJSONResponse[domain.Budget](t, putResp)
 	if updated.Month != 4 || updated.AmountLimitCents != 125000 {
 		t.Fatalf("PUT %s response = %+v, want updated month/amount", putPath, updated)
 	}
