@@ -1,14 +1,20 @@
 package main
 
 import (
+	"encoding/json"
 	"flag"
 	"fmt"
 	"os"
+	"strings"
 	"time"
 
 	"github.com/skaveesh/ledger-lite/internal/domain"
 	"github.com/skaveesh/ledger-lite/internal/store/sqlite"
 )
+
+type cliConfig struct {
+	DB string `json:"db"`
+}
 
 func main() {
 	if err := run(os.Args[1:]); err != nil {
@@ -20,10 +26,21 @@ func main() {
 func run(args []string) error {
 	fs := flag.NewFlagSet("ledger-cli", flag.ContinueOnError)
 	dbPath := fs.String("db", "ledgerlite.db", "path to SQLite database file")
+	configPath := fs.String("config", "", "path to CLI config JSON file")
 	fs.SetOutput(os.Stdout)
 
 	if err := fs.Parse(args); err != nil {
 		return err
+	}
+
+	if *configPath != "" {
+		cfg, err := loadConfig(*configPath)
+		if err != nil {
+			return err
+		}
+		if cfg.DB != "" && !hasOption(args, "--db") {
+			*dbPath = cfg.DB
+		}
 	}
 
 	remaining := fs.Args()
@@ -45,6 +62,28 @@ func run(args []string) error {
 	default:
 		return fmt.Errorf("unknown command: %s", remaining[0])
 	}
+}
+
+func loadConfig(path string) (cliConfig, error) {
+	data, err := os.ReadFile(path)
+	if err != nil {
+		return cliConfig{}, fmt.Errorf("read config: %w", err)
+	}
+
+	var cfg cliConfig
+	if err := json.Unmarshal(data, &cfg); err != nil {
+		return cliConfig{}, fmt.Errorf("parse config: %w", err)
+	}
+	return cfg, nil
+}
+
+func hasOption(args []string, option string) bool {
+	for i := range args {
+		if args[i] == option || strings.HasPrefix(args[i], option+"=") {
+			return true
+		}
+	}
+	return false
 }
 
 func runCategory(dbPath string, args []string) error {
@@ -250,4 +289,8 @@ func printUsage() {
 	fmt.Println("  transaction")
 	fmt.Println("  budget")
 	fmt.Println("  help")
+	fmt.Println()
+	fmt.Println("Global options:")
+	fmt.Println("  --db <path>       SQLite database path (default: ledgerlite.db)")
+	fmt.Println("  --config <path>   JSON config file with {\"db\":\"path/to/db\"}")
 }
