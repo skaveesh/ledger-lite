@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"os"
 	"strings"
+	"text/tabwriter"
 	"time"
 
 	"github.com/skaveesh/ledger-lite/internal/domain"
@@ -86,6 +87,15 @@ func hasOption(args []string, option string) bool {
 	return false
 }
 
+func formatCents(amount int64) string {
+	sign := ""
+	if amount < 0 {
+		sign = "-"
+		amount = -amount
+	}
+	return fmt.Sprintf("%s$%d.%02d", sign, amount/100, amount%100)
+}
+
 func runCategory(dbPath string, args []string) error {
 	if len(args) == 0 {
 		return fmt.Errorf("missing category subcommand")
@@ -121,9 +131,12 @@ func runCategory(dbPath string, args []string) error {
 			fmt.Println("no categories")
 			return nil
 		}
+		tw := tabwriter.NewWriter(os.Stdout, 0, 2, 2, ' ', 0)
+		_, _ = fmt.Fprintln(tw, "ID\tName")
 		for _, c := range categories {
-			fmt.Printf("%d\t%s\n", c.ID, c.Name)
+			_, _ = fmt.Fprintf(tw, "%d\t%s\n", c.ID, c.Name)
 		}
+		_ = tw.Flush()
 		return nil
 	case "update":
 		updateFS := flag.NewFlagSet("category update", flag.ContinueOnError)
@@ -201,9 +214,12 @@ func runTransaction(dbPath string, args []string) error {
 			fmt.Println("no transactions")
 			return nil
 		}
+		tw := tabwriter.NewWriter(os.Stdout, 0, 2, 2, ' ', 0)
+		_, _ = fmt.Fprintln(tw, "ID\tCategory\tAmount\tDescription\tDate")
 		for _, tr := range transactions {
-			fmt.Printf("%d\t%d\t%d\t%s\t%s\n", tr.ID, tr.CategoryID, tr.AmountCents, tr.Description, tr.Date.Format(time.RFC3339))
+			_, _ = fmt.Fprintf(tw, "%d\t%d\t%s\t%s\t%s\n", tr.ID, tr.CategoryID, formatCents(tr.AmountCents), tr.Description, tr.Date.Format(time.RFC3339))
 		}
+		_ = tw.Flush()
 		return nil
 	case "delete":
 		delFS := flag.NewFlagSet("transaction delete", flag.ContinueOnError)
@@ -269,9 +285,12 @@ func runBudget(dbPath string, args []string) error {
 			fmt.Println("no budgets")
 			return nil
 		}
+		tw := tabwriter.NewWriter(os.Stdout, 0, 2, 2, ' ', 0)
+		_, _ = fmt.Fprintln(tw, "ID\tCategory\tMonth\tYear\tLimit")
 		for _, b := range budgets {
-			fmt.Printf("%d\t%d\t%d\t%d\t%d\n", b.ID, b.CategoryID, b.Month, b.Year, b.AmountLimitCents)
+			_, _ = fmt.Fprintf(tw, "%d\t%d\t%d\t%d\t%s\n", b.ID, b.CategoryID, b.Month, b.Year, formatCents(b.AmountLimitCents))
 		}
+		_ = tw.Flush()
 		return nil
 	default:
 		return fmt.Errorf("unknown budget subcommand: %s", args[0])
