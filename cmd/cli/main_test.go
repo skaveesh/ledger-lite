@@ -1,6 +1,7 @@
 package main
 
 import (
+	"encoding/json"
 	"os"
 	"path/filepath"
 	"testing"
@@ -72,7 +73,11 @@ func TestRunTransactionDelete(t *testing.T) {
 func TestRunWithConfigDB(t *testing.T) {
 	dbPath := newTestDBPath(t)
 	configPath := filepath.Join(t.TempDir(), "cli-config.json")
-	if err := os.WriteFile(configPath, []byte("{\"db\":\""+dbPath+"\"}"), 0o644); err != nil {
+	configBytes, err := json.Marshal(map[string]string{"db": dbPath})
+	if err != nil {
+		t.Fatalf("marshal config: %v", err)
+	}
+	if err := os.WriteFile(configPath, configBytes, 0o644); err != nil {
 		t.Fatalf("write config: %v", err)
 	}
 
