@@ -19,7 +19,8 @@ type cliConfig struct {
 
 func main() {
 	if err := run(os.Args[1:]); err != nil {
-		fmt.Fprintln(os.Stderr, "error:", err)
+		fmt.Fprintln(os.Stderr, "Error:", err)
+		fmt.Fprintln(os.Stderr, "Hint: run `go run ./cmd/cli -- help` for usage.")
 		os.Exit(1)
 	}
 }
@@ -31,7 +32,7 @@ func run(args []string) error {
 	fs.SetOutput(os.Stdout)
 
 	if err := fs.Parse(args); err != nil {
-		return err
+		return fmt.Errorf("failed to parse flags: %w", err)
 	}
 
 	if *configPath != "" {
@@ -61,7 +62,7 @@ func run(args []string) error {
 		printUsage()
 		return nil
 	default:
-		return fmt.Errorf("unknown command: %s", remaining[0])
+		return fmt.Errorf("unknown command: %s (available: category, transaction, budget, help)", remaining[0])
 	}
 }
 
@@ -98,7 +99,7 @@ func formatCents(amount int64) string {
 
 func runCategory(dbPath string, args []string) error {
 	if len(args) == 0 {
-		return fmt.Errorf("missing category subcommand")
+		return fmt.Errorf("missing category subcommand (available: add, list, update)")
 	}
 
 	s, err := sqlite.New(dbPath)
@@ -161,13 +162,13 @@ func runCategory(dbPath string, args []string) error {
 		fmt.Printf("category updated: id=%d name=%s\n", updated.ID, updated.Name)
 		return nil
 	default:
-		return fmt.Errorf("unknown category subcommand: %s", args[0])
+		return fmt.Errorf("unknown category subcommand: %s (available: add, list, update)", args[0])
 	}
 }
 
 func runTransaction(dbPath string, args []string) error {
 	if len(args) == 0 {
-		return fmt.Errorf("missing transaction subcommand")
+		return fmt.Errorf("missing transaction subcommand (available: add, list, delete)")
 	}
 
 	s, err := sqlite.New(dbPath)
@@ -237,13 +238,13 @@ func runTransaction(dbPath string, args []string) error {
 		fmt.Printf("transaction deleted: id=%d\n", *id)
 		return nil
 	default:
-		return fmt.Errorf("unknown transaction subcommand: %s", args[0])
+		return fmt.Errorf("unknown transaction subcommand: %s (available: add, list, delete)", args[0])
 	}
 }
 
 func runBudget(dbPath string, args []string) error {
 	if len(args) == 0 {
-		return fmt.Errorf("missing budget subcommand")
+		return fmt.Errorf("missing budget subcommand (available: set, list)")
 	}
 
 	s, err := sqlite.New(dbPath)
@@ -293,7 +294,7 @@ func runBudget(dbPath string, args []string) error {
 		_ = tw.Flush()
 		return nil
 	default:
-		return fmt.Errorf("unknown budget subcommand: %s", args[0])
+		return fmt.Errorf("unknown budget subcommand: %s (available: set, list)", args[0])
 	}
 }
 
