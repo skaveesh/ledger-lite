@@ -51,6 +51,7 @@ func (a *api) router() http.Handler {
 	mux.HandleFunc("/transactions/", a.withErrorHandling(a.handleTransactionByID))
 	mux.HandleFunc("/budgets", a.withErrorHandling(a.handleBudgets))
 	mux.HandleFunc("/budgets/", a.withErrorHandling(a.handleBudgetByID))
+	mux.HandleFunc("/ui", a.withErrorHandling(a.handleUIHome))
 	return mux
 }
 
@@ -257,6 +258,14 @@ func (a *api) handleBudgetByID(w http.ResponseWriter, r *http.Request) {
 	}
 
 	writeJSON(w, http.StatusOK, updated)
+}
+
+func (a *api) handleUIHome(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodGet {
+		writeJSON(w, http.StatusMethodNotAllowed, apiError{Error: "method not allowed"})
+		return
+	}
+	_, _ = w.Write([]byte("LedgerLite UI"))
 }
 
 func main() {
