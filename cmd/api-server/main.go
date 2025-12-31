@@ -3,8 +3,10 @@ package main
 import (
 	"encoding/json"
 	"errors"
+	"html/template"
 	"log"
 	"net/http"
+	"path/filepath"
 	"strconv"
 	"strings"
 	"time"
@@ -19,6 +21,13 @@ type api struct {
 
 type apiError struct {
 	Error string `json:"error"`
+}
+
+type uiData struct {
+	Title        string
+	Transactions []domain.Transaction
+	Categories   []domain.Category
+	Budgets      []domain.Budget
 }
 
 func newAPI() *api {
@@ -52,6 +61,7 @@ func (a *api) router() http.Handler {
 	mux.HandleFunc("/budgets", a.withErrorHandling(a.handleBudgets))
 	mux.HandleFunc("/budgets/", a.withErrorHandling(a.handleBudgetByID))
 	mux.HandleFunc("/ui", a.withErrorHandling(a.handleUIHome))
+	mux.HandleFunc("/ui/transactions", a.withErrorHandling(a.handleUITransactions))
 	return mux
 }
 
@@ -266,6 +276,33 @@ func (a *api) handleUIHome(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	_, _ = w.Write([]byte("LedgerLite UI"))
+}
+
+func renderTemplate(w http.ResponseWriter, bodyTemplate string, data uiData) {
+	tmpl, err := template.ParseFiles(
+		filepath.FromSlash("cmd/api-server/templates/base.html"),
+		filepath.FromSlash(bodyTemplate),
+	)
+	if err != nil {
+		writeJSON(w, http.StatusInternalServerError, apiError{Error: "failed to load template"})
+		return
+	}
+	if err := tmpl.ExecuteTemplate(w, "base", data); err != nil {
+		writeJSON(w, http.StatusInternalServerError, apiError{Error: "failed to render template"})
+		return
+	}
+}
+
+func (a *api) handleUITransactions(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodGet {
+		writeJSON(w, http.StatusMethodNotAllowed, apiError{Error: "method not allowed"})
+		return
+	}
+
+	renderTemplate(w, filepath.FromSlash("cmd/api-server/templates/transactions.html"), uiData{
+		Title:        "Transactions",
+		Transactions: a.store.ListTransactions(),
+	})
 }
 
 func main() {
