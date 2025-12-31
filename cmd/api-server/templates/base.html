@@ -1,0 +1,25 @@
+{{ define "base" }}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{{ .Title }}</title>
+</head>
+<body>
+  <header>
+    <h1>LedgerLite UI</h1>
+    <nav>
+      <a href="/ui/transactions">Transactions</a> |
+      <a href="/ui/categories">Categories</a> |
+      <a href="/ui/budgets">Budgets</a>
+    </nav>
+    <hr>
+  </header>
+  <main>
+    {{ template "content" . }}
+  </main>
+</body>
+</html>
+{{ end }}
+
