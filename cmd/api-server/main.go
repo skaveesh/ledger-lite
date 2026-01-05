@@ -62,6 +62,7 @@ func (a *api) router() http.Handler {
 	mux.HandleFunc("/budgets/", a.withErrorHandling(a.handleBudgetByID))
 	mux.HandleFunc("/ui", a.withErrorHandling(a.handleUIHome))
 	mux.HandleFunc("/ui/transactions", a.withErrorHandling(a.handleUITransactions))
+	mux.HandleFunc("/ui/transactions/add", a.withErrorHandling(a.handleUIAddTransaction))
 	mux.HandleFunc("/ui/categories", a.withErrorHandling(a.handleUICategories))
 	mux.HandleFunc("/ui/budgets", a.withErrorHandling(a.handleUIBudgets))
 	return mux
@@ -305,6 +306,48 @@ func (a *api) handleUITransactions(w http.ResponseWriter, r *http.Request) {
 		Title:        "Transactions",
 		Transactions: a.store.ListTransactions(),
 	})
+}
+
+func (a *api) handleUIAddTransaction(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		writeJSON(w, http.StatusMethodNotAllowed, apiError{Error: "method not allowed"})
+		return
+	}
+
+	if err := r.ParseForm(); err != nil {
+		writeJSON(w, http.StatusBadRequest, apiError{Error: "invalid form data"})
+		return
+	}
+
+	categoryID, err := strconv.ParseInt(r.FormValue("category_id"), 10, 64)
+	if err != nil || categoryID <= 0 {
+		writeJSON(w, http.StatusBadRequest, apiError{Error: "invalid category_id"})
+		return
+	}
+	amountCents, err := strconv.ParseInt(r.FormValue("amount_cents"), 10, 64)
+	if err != nil || amountCents == 0 {
+		writeJSON(w, http.StatusBadRequest, apiError{Error: "invalid amount_cents"})
+		return
+	}
+
+	date, err := time.Parse("2006-01-02", r.FormValue("date"))
+	if err != nil {
+		writeJSON(w, http.StatusBadRequest, apiError{Error: "invalid date"})
+		return
+	}
+
+	_, err = a.store.CreateTransaction(domain.Transaction{
+		CategoryID:  categoryID,
+		AmountCents: amountCents,
+		Description: strings.TrimSpace(r.FormValue("description")),
+		Date:        date,
+	})
+	if err != nil {
+		writeJSON(w, http.StatusBadRequest, apiError{Error: err.Error()})
+		return
+	}
+
+	http.Redirect(w, r, "/ui/transactions", http.StatusSeeOther)
 }
 
 func (a *api) handleUICategories(w http.ResponseWriter, r *http.Request) {

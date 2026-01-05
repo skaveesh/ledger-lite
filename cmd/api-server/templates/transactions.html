@@ -1,5 +1,15 @@
 {{ define "content" }}
 <h2>Transactions</h2>
+
+<h3>Add Transaction</h3>
+<form method="post" action="/ui/transactions/add">
+  <label>Category ID: <input type="number" name="category_id" min="1" required></label><br>
+  <label>Amount (cents): <input type="number" name="amount_cents" required></label><br>
+  <label>Description: <input type="text" name="description"></label><br>
+  <label>Date: <input type="date" name="date" required></label><br>
+  <button type="submit">Add Transaction</button>
+</form>
+
 <table border="1" cellpadding="6" cellspacing="0">
   <thead>
     <tr>
@@ -27,4 +37,3 @@
   </tbody>
 </table>
 {{ end }}
-
