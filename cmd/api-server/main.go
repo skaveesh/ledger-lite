@@ -63,6 +63,7 @@ func (a *api) router() http.Handler {
 	mux.HandleFunc("/ui", a.withErrorHandling(a.handleUIHome))
 	mux.HandleFunc("/ui/transactions", a.withErrorHandling(a.handleUITransactions))
 	mux.HandleFunc("/ui/categories", a.withErrorHandling(a.handleUICategories))
+	mux.HandleFunc("/ui/budgets", a.withErrorHandling(a.handleUIBudgets))
 	return mux
 }
 
@@ -315,6 +316,18 @@ func (a *api) handleUICategories(w http.ResponseWriter, r *http.Request) {
 	renderTemplate(w, filepath.FromSlash("cmd/api-server/templates/categories.html"), uiData{
 		Title:      "Categories",
 		Categories: a.store.ListCategories(),
+	})
+}
+
+func (a *api) handleUIBudgets(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodGet {
+		writeJSON(w, http.StatusMethodNotAllowed, apiError{Error: "method not allowed"})
+		return
+	}
+
+	renderTemplate(w, filepath.FromSlash("cmd/api-server/templates/budgets.html"), uiData{
+		Title:   "Budgets",
+		Budgets: a.store.ListBudgets(),
 	})
 }
 

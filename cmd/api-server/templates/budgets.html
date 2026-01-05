@@ -1,0 +1,30 @@
+{{ define "content" }}
+<h2>Budgets</h2>
+<table border="1" cellpadding="6" cellspacing="0">
+  <thead>
+    <tr>
+      <th>ID</th>
+      <th>Category</th>
+      <th>Month</th>
+      <th>Year</th>
+      <th>Limit (cents)</th>
+    </tr>
+  </thead>
+  <tbody>
+    {{ range .Budgets }}
+    <tr>
+      <td>{{ .ID }}</td>
+      <td>{{ .CategoryID }}</td>
+      <td>{{ .Month }}</td>
+      <td>{{ .Year }}</td>
+      <td>{{ .AmountLimitCents }}</td>
+    </tr>
+    {{ else }}
+    <tr>
+      <td colspan="5">No budgets yet.</td>
+    </tr>
+    {{ end }}
+  </tbody>
+</table>
+{{ end }}
+
