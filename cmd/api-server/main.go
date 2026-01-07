@@ -315,21 +315,25 @@ func (a *api) handleUITransactions(w http.ResponseWriter, r *http.Request) {
 	}
 
 	filterDate := strings.TrimSpace(r.URL.Query().Get("date"))
+	filterCategoryID, _ := strconv.ParseInt(strings.TrimSpace(r.URL.Query().Get("category_id")), 10, 64)
 	transactions := a.store.ListTransactions()
-	if filterDate != "" {
-		filtered := make([]domain.Transaction, 0, len(transactions))
-		for _, tr := range transactions {
-			if tr.Date.Format("2006-01-02") == filterDate {
-				filtered = append(filtered, tr)
-			}
+	filtered := make([]domain.Transaction, 0, len(transactions))
+	for _, tr := range transactions {
+		if filterDate != "" && tr.Date.Format("2006-01-02") != filterDate {
+			continue
 		}
-		transactions = filtered
+		if filterCategoryID > 0 && tr.CategoryID != filterCategoryID {
+			continue
+		}
+		filtered = append(filtered, tr)
 	}
 
 	renderTemplate(w, filepath.FromSlash("cmd/api-server/templates/transactions.html"), uiData{
-		Title:        "Transactions",
-		Transactions: transactions,
-		FilterDate:   filterDate,
+		Title:            "Transactions",
+		Transactions:     filtered,
+		Categories:       a.store.ListCategories(),
+		FilterDate:       filterDate,
+		FilterCategoryID: filterCategoryID,
 	})
 }
 

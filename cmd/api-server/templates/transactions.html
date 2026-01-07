@@ -4,6 +4,14 @@
 <h3>Filters</h3>
 <form method="get" action="/ui/transactions">
   <label>Date: <input type="date" name="date" value="{{ .FilterDate }}"></label>
+  <label>Category:
+    <select name="category_id">
+      <option value="">All</option>
+      {{ range .Categories }}
+      <option value="{{ .ID }}" {{ if eq $.FilterCategoryID .ID }}selected{{ end }}>{{ .Name }} ({{ .ID }})</option>
+      {{ end }}
+    </select>
+  </label>
   <button type="submit">Apply</button>
   <a href="/ui/transactions">Clear</a>
 </form>
