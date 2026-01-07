@@ -24,10 +24,22 @@ type apiError struct {
 }
 
 type uiData struct {
-	Title        string
-	Transactions []domain.Transaction
-	Categories   []domain.Category
-	Budgets      []domain.Budget
+	Title             string
+	Transactions      []domain.Transaction
+	Categories        []domain.Category
+	Budgets           []domain.Budget
+	FilterDate        string
+	FilterCategoryID  int64
+	UIError           string
+	SummaryMonth      int
+	SummaryYear       int
+	SummaryTotalCents int64
+	SummaryRows       []summaryRow
+}
+
+type summaryRow struct {
+	CategoryID int64
+	TotalCents int64
 }
 
 func newAPI() *api {
@@ -302,9 +314,22 @@ func (a *api) handleUITransactions(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	filterDate := strings.TrimSpace(r.URL.Query().Get("date"))
+	transactions := a.store.ListTransactions()
+	if filterDate != "" {
+		filtered := make([]domain.Transaction, 0, len(transactions))
+		for _, tr := range transactions {
+			if tr.Date.Format("2006-01-02") == filterDate {
+				filtered = append(filtered, tr)
+			}
+		}
+		transactions = filtered
+	}
+
 	renderTemplate(w, filepath.FromSlash("cmd/api-server/templates/transactions.html"), uiData{
 		Title:        "Transactions",
-		Transactions: a.store.ListTransactions(),
+		Transactions: transactions,
+		FilterDate:   filterDate,
 	})
 }
 

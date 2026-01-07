@@ -1,6 +1,13 @@
 {{ define "content" }}
 <h2>Transactions</h2>
 
+<h3>Filters</h3>
+<form method="get" action="/ui/transactions">
+  <label>Date: <input type="date" name="date" value="{{ .FilterDate }}"></label>
+  <button type="submit">Apply</button>
+  <a href="/ui/transactions">Clear</a>
+</form>
+
 <h3>Add Transaction</h3>
 <form method="post" action="/ui/transactions/add">
   <label>Category ID: <input type="number" name="category_id" min="1" required></label><br>
