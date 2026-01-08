@@ -76,6 +76,7 @@ func (a *api) router() http.Handler {
 	mux.HandleFunc("/ui", a.withErrorHandling(a.handleUIHome))
 	mux.HandleFunc("/ui/transactions", a.withErrorHandling(a.handleUITransactions))
 	mux.HandleFunc("/ui/transactions/add", a.withErrorHandling(a.handleUIAddTransaction))
+	mux.HandleFunc("/ui/transactions/delete", a.withErrorHandling(a.handleUIDeleteTransaction))
 	mux.HandleFunc("/ui/categories", a.withErrorHandling(a.handleUICategories))
 	mux.HandleFunc("/ui/budgets", a.withErrorHandling(a.handleUIBudgets))
 	mux.HandleFunc("/ui/summary", a.withErrorHandling(a.handleUIMonthlySummary))
@@ -375,6 +376,29 @@ func (a *api) handleUIAddTransaction(w http.ResponseWriter, r *http.Request) {
 	})
 	if err != nil {
 		writeJSON(w, http.StatusBadRequest, apiError{Error: err.Error()})
+		return
+	}
+
+	http.Redirect(w, r, "/ui/transactions", http.StatusSeeOther)
+}
+
+func (a *api) handleUIDeleteTransaction(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		writeJSON(w, http.StatusMethodNotAllowed, apiError{Error: "method not allowed"})
+		return
+	}
+	if err := r.ParseForm(); err != nil {
+		writeJSON(w, http.StatusBadRequest, apiError{Error: "invalid form data"})
+		return
+	}
+
+	id, err := strconv.ParseInt(strings.TrimSpace(r.FormValue("id")), 10, 64)
+	if err != nil || id <= 0 {
+		writeJSON(w, http.StatusBadRequest, apiError{Error: "invalid transaction id"})
+		return
+	}
+	if !a.store.DeleteTransaction(id) {
+		writeJSON(w, http.StatusNotFound, apiError{Error: "transaction not found"})
 		return
 	}
 
