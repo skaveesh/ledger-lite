@@ -13,6 +13,7 @@ import (
 
 	"github.com/skaveesh/ledger-lite/internal/domain"
 	"github.com/skaveesh/ledger-lite/internal/store"
+	"sort"
 )
 
 type api struct {
@@ -77,6 +78,7 @@ func (a *api) router() http.Handler {
 	mux.HandleFunc("/ui/transactions/add", a.withErrorHandling(a.handleUIAddTransaction))
 	mux.HandleFunc("/ui/categories", a.withErrorHandling(a.handleUICategories))
 	mux.HandleFunc("/ui/budgets", a.withErrorHandling(a.handleUIBudgets))
+	mux.HandleFunc("/ui/summary", a.withErrorHandling(a.handleUIMonthlySummary))
 	return mux
 }
 
@@ -400,6 +402,46 @@ func (a *api) handleUIBudgets(w http.ResponseWriter, r *http.Request) {
 	renderTemplate(w, filepath.FromSlash("cmd/api-server/templates/budgets.html"), uiData{
 		Title:   "Budgets",
 		Budgets: a.store.ListBudgets(),
+	})
+}
+
+func (a *api) handleUIMonthlySummary(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodGet {
+		writeJSON(w, http.StatusMethodNotAllowed, apiError{Error: "method not allowed"})
+		return
+	}
+
+	now := time.Now()
+	month := int(now.Month())
+	year := now.Year()
+	if m, err := strconv.Atoi(strings.TrimSpace(r.URL.Query().Get("month"))); err == nil && m >= 1 && m <= 12 {
+		month = m
+	}
+	if y, err := strconv.Atoi(strings.TrimSpace(r.URL.Query().Get("year"))); err == nil && y > 0 {
+		year = y
+	}
+
+	totals := map[int64]int64{}
+	var total int64
+	for _, tr := range a.store.ListTransactions() {
+		if int(tr.Date.Month()) == month && tr.Date.Year() == year {
+			totals[tr.CategoryID] += tr.AmountCents
+			total += tr.AmountCents
+		}
+	}
+
+	rows := make([]summaryRow, 0, len(totals))
+	for categoryID, cents := range totals {
+		rows = append(rows, summaryRow{CategoryID: categoryID, TotalCents: cents})
+	}
+	sort.Slice(rows, func(i, j int) bool { return rows[i].CategoryID < rows[j].CategoryID })
+
+	renderTemplate(w, filepath.FromSlash("cmd/api-server/templates/summary.html"), uiData{
+		Title:             "Monthly Summary",
+		SummaryMonth:      month,
+		SummaryYear:       year,
+		SummaryTotalCents: total,
+		SummaryRows:       rows,
 	})
 }
 

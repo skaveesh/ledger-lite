@@ -1,0 +1,32 @@
+{{ define "content" }}
+<h2>Monthly Summary</h2>
+<form method="get" action="/ui/summary">
+  <label>Month: <input type="number" name="month" min="1" max="12" value="{{ .SummaryMonth }}"></label>
+  <label>Year: <input type="number" name="year" min="2000" value="{{ .SummaryYear }}"></label>
+  <button type="submit">Apply</button>
+</form>
+
+<p><strong>Total:</strong> {{ .SummaryTotalCents }} cents</p>
+
+<table border="1" cellpadding="6" cellspacing="0">
+  <thead>
+    <tr>
+      <th>Category ID</th>
+      <th>Total (cents)</th>
+    </tr>
+  </thead>
+  <tbody>
+    {{ range .SummaryRows }}
+    <tr>
+      <td>{{ .CategoryID }}</td>
+      <td>{{ .TotalCents }}</td>
+    </tr>
+    {{ else }}
+    <tr>
+      <td colspan="2">No transactions for this month.</td>
+    </tr>
+    {{ end }}
+  </tbody>
+</table>
+{{ end }}
+
