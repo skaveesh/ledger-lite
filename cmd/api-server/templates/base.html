@@ -5,6 +5,16 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>{{ .Title }}</title>
+  <style>
+    body { font-family: Arial, sans-serif; margin: 2rem auto; max-width: 980px; line-height: 1.4; }
+    nav a { margin-right: 0.75rem; text-decoration: none; color: #184a8b; }
+    nav a:hover { text-decoration: underline; }
+    table { width: 100%; border-collapse: collapse; margin-top: 1rem; }
+    th, td { border: 1px solid #d8d8d8; padding: 0.5rem; text-align: left; }
+    th { background: #f5f7fb; }
+    form { margin: 0.75rem 0; }
+    input, select, button { padding: 0.35rem; margin-right: 0.4rem; }
+  </style>
 </head>
 <body>
   <header>
@@ -22,4 +32,3 @@
 </body>
 </html>
 {{ end }}
-
