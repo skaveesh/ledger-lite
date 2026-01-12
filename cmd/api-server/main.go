@@ -11,9 +11,10 @@ import (
 	"strings"
 	"time"
 
+	"sort"
+
 	"github.com/skaveesh/ledger-lite/internal/domain"
 	"github.com/skaveesh/ledger-lite/internal/store"
-	"sort"
 )
 
 type api struct {
@@ -297,6 +298,10 @@ func (a *api) handleUIHome(w http.ResponseWriter, r *http.Request) {
 }
 
 func renderTemplate(w http.ResponseWriter, bodyTemplate string, data uiData) {
+	renderTemplateStatus(w, http.StatusOK, bodyTemplate, data)
+}
+
+func renderTemplateStatus(w http.ResponseWriter, status int, bodyTemplate string, data uiData) {
 	tmpl, err := template.ParseFiles(
 		filepath.FromSlash("cmd/api-server/templates/base.html"),
 		filepath.FromSlash(bodyTemplate),
@@ -305,20 +310,14 @@ func renderTemplate(w http.ResponseWriter, bodyTemplate string, data uiData) {
 		writeJSON(w, http.StatusInternalServerError, apiError{Error: "failed to load template"})
 		return
 	}
+	w.WriteHeader(status)
 	if err := tmpl.ExecuteTemplate(w, "base", data); err != nil {
 		writeJSON(w, http.StatusInternalServerError, apiError{Error: "failed to render template"})
 		return
 	}
 }
 
-func (a *api) handleUITransactions(w http.ResponseWriter, r *http.Request) {
-	if r.Method != http.MethodGet {
-		writeJSON(w, http.StatusMethodNotAllowed, apiError{Error: "method not allowed"})
-		return
-	}
-
-	filterDate := strings.TrimSpace(r.URL.Query().Get("date"))
-	filterCategoryID, _ := strconv.ParseInt(strings.TrimSpace(r.URL.Query().Get("category_id")), 10, 64)
+func (a *api) uiTransactionsData(filterDate string, filterCategoryID int64, uiError string) uiData {
 	transactions := a.store.ListTransactions()
 	filtered := make([]domain.Transaction, 0, len(transactions))
 	for _, tr := range transactions {
@@ -330,41 +329,53 @@ func (a *api) handleUITransactions(w http.ResponseWriter, r *http.Request) {
 		}
 		filtered = append(filtered, tr)
 	}
-
-	renderTemplate(w, filepath.FromSlash("cmd/api-server/templates/transactions.html"), uiData{
+	return uiData{
 		Title:            "Transactions",
 		Transactions:     filtered,
 		Categories:       a.store.ListCategories(),
 		FilterDate:       filterDate,
 		FilterCategoryID: filterCategoryID,
-	})
+		UIError:          uiError,
+	}
 }
 
-func (a *api) handleUIAddTransaction(w http.ResponseWriter, r *http.Request) {
-	if r.Method != http.MethodPost {
+func (a *api) handleUITransactions(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodGet {
 		writeJSON(w, http.StatusMethodNotAllowed, apiError{Error: "method not allowed"})
 		return
 	}
 
+	filterDate := strings.TrimSpace(r.URL.Query().Get("date"))
+	filterCategoryID, _ := strconv.ParseInt(strings.TrimSpace(r.URL.Query().Get("category_id")), 10, 64)
+
+	renderTemplate(w, filepath.FromSlash("cmd/api-server/templates/transactions.html"), a.uiTransactionsData(filterDate, filterCategoryID, ""))
+}
+
+func (a *api) handleUIAddTransaction(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		renderTemplateStatus(w, http.StatusMethodNotAllowed, filepath.FromSlash("cmd/api-server/templates/transactions.html"), a.uiTransactionsData("", 0, "method not allowed"))
+		return
+	}
+
 	if err := r.ParseForm(); err != nil {
-		writeJSON(w, http.StatusBadRequest, apiError{Error: "invalid form data"})
+		renderTemplateStatus(w, http.StatusBadRequest, filepath.FromSlash("cmd/api-server/templates/transactions.html"), a.uiTransactionsData("", 0, "invalid form data"))
 		return
 	}
 
 	categoryID, err := strconv.ParseInt(r.FormValue("category_id"), 10, 64)
 	if err != nil || categoryID <= 0 {
-		writeJSON(w, http.StatusBadRequest, apiError{Error: "invalid category_id"})
+		renderTemplateStatus(w, http.StatusBadRequest, filepath.FromSlash("cmd/api-server/templates/transactions.html"), a.uiTransactionsData("", 0, "invalid category id"))
 		return
 	}
 	amountCents, err := strconv.ParseInt(r.FormValue("amount_cents"), 10, 64)
 	if err != nil || amountCents == 0 {
-		writeJSON(w, http.StatusBadRequest, apiError{Error: "invalid amount_cents"})
+		renderTemplateStatus(w, http.StatusBadRequest, filepath.FromSlash("cmd/api-server/templates/transactions.html"), a.uiTransactionsData("", 0, "invalid amount"))
 		return
 	}
 
 	date, err := time.Parse("2006-01-02", r.FormValue("date"))
 	if err != nil {
-		writeJSON(w, http.StatusBadRequest, apiError{Error: "invalid date"})
+		renderTemplateStatus(w, http.StatusBadRequest, filepath.FromSlash("cmd/api-server/templates/transactions.html"), a.uiTransactionsData("", 0, "invalid date"))
 		return
 	}
 
@@ -375,7 +386,7 @@ func (a *api) handleUIAddTransaction(w http.ResponseWriter, r *http.Request) {
 		Date:        date,
 	})
 	if err != nil {
-		writeJSON(w, http.StatusBadRequest, apiError{Error: err.Error()})
+		renderTemplateStatus(w, http.StatusBadRequest, filepath.FromSlash("cmd/api-server/templates/transactions.html"), a.uiTransactionsData("", 0, err.Error()))
 		return
 	}
 
@@ -384,21 +395,21 @@ func (a *api) handleUIAddTransaction(w http.ResponseWriter, r *http.Request) {
 
 func (a *api) handleUIDeleteTransaction(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPost {
-		writeJSON(w, http.StatusMethodNotAllowed, apiError{Error: "method not allowed"})
+		renderTemplateStatus(w, http.StatusMethodNotAllowed, filepath.FromSlash("cmd/api-server/templates/transactions.html"), a.uiTransactionsData("", 0, "method not allowed"))
 		return
 	}
 	if err := r.ParseForm(); err != nil {
-		writeJSON(w, http.StatusBadRequest, apiError{Error: "invalid form data"})
+		renderTemplateStatus(w, http.StatusBadRequest, filepath.FromSlash("cmd/api-server/templates/transactions.html"), a.uiTransactionsData("", 0, "invalid form data"))
 		return
 	}
 
 	id, err := strconv.ParseInt(strings.TrimSpace(r.FormValue("id")), 10, 64)
 	if err != nil || id <= 0 {
-		writeJSON(w, http.StatusBadRequest, apiError{Error: "invalid transaction id"})
+		renderTemplateStatus(w, http.StatusBadRequest, filepath.FromSlash("cmd/api-server/templates/transactions.html"), a.uiTransactionsData("", 0, "invalid transaction id"))
 		return
 	}
 	if !a.store.DeleteTransaction(id) {
-		writeJSON(w, http.StatusNotFound, apiError{Error: "transaction not found"})
+		renderTemplateStatus(w, http.StatusNotFound, filepath.FromSlash("cmd/api-server/templates/transactions.html"), a.uiTransactionsData("", 0, "transaction not found"))
 		return
 	}
 
