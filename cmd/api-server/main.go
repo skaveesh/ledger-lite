@@ -167,10 +167,39 @@ func (a *api) handleCategories(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+func parsePositiveIntDefault(raw string, fallback int) int {
+	if raw == "" {
+		return fallback
+	}
+	value, err := strconv.Atoi(strings.TrimSpace(raw))
+	if err != nil || value <= 0 {
+		return fallback
+	}
+	return value
+}
+
+func paginateTransactions(items []domain.Transaction, page int, pageSize int) []domain.Transaction {
+	if len(items) == 0 {
+		return items
+	}
+	start := (page - 1) * pageSize
+	if start >= len(items) {
+		return []domain.Transaction{}
+	}
+	end := start + pageSize
+	if end > len(items) {
+		end = len(items)
+	}
+	return items[start:end]
+}
+
 func (a *api) handleTransactions(w http.ResponseWriter, r *http.Request) {
 	switch r.Method {
 	case http.MethodGet:
-		writeJSON(w, http.StatusOK, a.store.ListTransactions())
+		transactions := a.store.ListTransactions()
+		page := parsePositiveIntDefault(r.URL.Query().Get("page"), 1)
+		pageSize := parsePositiveIntDefault(r.URL.Query().Get("page_size"), 20)
+		writeJSON(w, http.StatusOK, paginateTransactions(transactions, page, pageSize))
 	case http.MethodPost:
 		var req domain.Transaction
 		if err := decodeJSON(r, &req); err != nil {
