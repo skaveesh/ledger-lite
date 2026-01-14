@@ -88,3 +88,31 @@ func TestTransactionsGetPagination(t *testing.T) {
 		t.Fatalf("GET /transactions pagination len = %d, want 1", len(got))
 	}
 }
+
+func TestTransactionsGetSortingByAmountDesc(t *testing.T) {
+	_, router := newTestServer()
+	amounts := []int{300, 100, 200}
+	for _, amount := range amounts {
+		resp := performRequest(t, router, http.MethodPost, "/transactions", map[string]any{
+			"categoryID":  1,
+			"amountCents": amount,
+			"description": "item",
+			"date":        time.Date(2026, 3, 1, 12, 0, 0, 0, time.UTC).Format(time.RFC3339),
+		})
+		if resp.Code != http.StatusCreated {
+			t.Fatalf("POST /transactions status = %d, want %d", resp.Code, http.StatusCreated)
+		}
+	}
+
+	rr := performRequest(t, router, http.MethodGet, "/transactions?sort_by=amount&order=desc", nil)
+	if rr.Code != http.StatusOK {
+		t.Fatalf("GET /transactions sorting status = %d, want %d", rr.Code, http.StatusOK)
+	}
+	got := decodeJSONResponse[[]domain.Transaction](t, rr)
+	if len(got) != 3 {
+		t.Fatalf("GET /transactions sorting len = %d, want 3", len(got))
+	}
+	if got[0].AmountCents != 300 || got[1].AmountCents != 200 || got[2].AmountCents != 100 {
+		t.Fatalf("sorted amounts = [%d %d %d], want [300 200 100]", got[0].AmountCents, got[1].AmountCents, got[2].AmountCents)
+	}
+}

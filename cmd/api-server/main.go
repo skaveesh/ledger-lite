@@ -193,10 +193,33 @@ func paginateTransactions(items []domain.Transaction, page int, pageSize int) []
 	return items[start:end]
 }
 
+func sortTransactions(items []domain.Transaction, sortBy string, order string) {
+	desc := strings.EqualFold(order, "desc")
+	switch sortBy {
+	case "amount":
+		sort.Slice(items, func(i, j int) bool {
+			if desc {
+				return items[i].AmountCents > items[j].AmountCents
+			}
+			return items[i].AmountCents < items[j].AmountCents
+		})
+	case "date":
+		sort.Slice(items, func(i, j int) bool {
+			if desc {
+				return items[i].Date.After(items[j].Date)
+			}
+			return items[i].Date.Before(items[j].Date)
+		})
+	}
+}
+
 func (a *api) handleTransactions(w http.ResponseWriter, r *http.Request) {
 	switch r.Method {
 	case http.MethodGet:
 		transactions := a.store.ListTransactions()
+		sortBy := strings.TrimSpace(r.URL.Query().Get("sort_by"))
+		order := strings.TrimSpace(r.URL.Query().Get("order"))
+		sortTransactions(transactions, sortBy, order)
 		page := parsePositiveIntDefault(r.URL.Query().Get("page"), 1)
 		pageSize := parsePositiveIntDefault(r.URL.Query().Get("page_size"), 20)
 		writeJSON(w, http.StatusOK, paginateTransactions(transactions, page, pageSize))
