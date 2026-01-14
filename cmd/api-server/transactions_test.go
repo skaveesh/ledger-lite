@@ -49,3 +49,18 @@ func TestTransactionsPostThenGet(t *testing.T) {
 		t.Fatalf("GET /transactions response = %+v, want one transaction amount 4500", list)
 	}
 }
+
+func TestTransactionsPostInvalidJSONUnknownField(t *testing.T) {
+	_, router := newTestServer()
+
+	rr := performRequest(t, router, http.MethodPost, "/transactions", map[string]any{
+		"categoryID":  1,
+		"amountCents": 4500,
+		"description": "Groceries",
+		"date":        time.Date(2026, 3, 1, 12, 0, 0, 0, time.UTC).Format(time.RFC3339),
+		"oops":        "unknown",
+	})
+	if rr.Code != http.StatusBadRequest {
+		t.Fatalf("POST /transactions with unknown field status = %d, want %d", rr.Code, http.StatusBadRequest)
+	}
+}

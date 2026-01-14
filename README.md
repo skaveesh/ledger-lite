@@ -55,31 +55,31 @@
 - [x] Day 42: Add CLI help docs in README.
 
 ## Week 7: CLI Improvements
-- [ ] Day 43: Add `transaction delete` command.
-- [ ] Day 44: Add `category update` command.
-- [ ] Day 45: Add `budget list` command.
-- [ ] Day 46: Add CLI config file support.
-- [ ] Day 47: Add pretty output formatting.
-- [ ] Day 48: Add CLI error messages.
-- [ ] Day 49: Write CLI tests (basic).
+- [x] Day 43: Add `transaction delete` command.
+- [x] Day 44: Add `category update` command.
+- [x] Day 45: Add `budget list` command.
+- [x] Day 46: Add CLI config file support.
+- [x] Day 47: Add pretty output formatting.
+- [x] Day 48: Add CLI error messages.
+- [x] Day 49: Write CLI tests (basic).
 
 ## Week 8: Web UI Skeleton
-- [ ] Day 50: Add HTML templates folder.
-- [ ] Day 51: Add `/ui` route.
-- [ ] Day 52: Create base layout template.
-- [ ] Day 53: Create transactions list page.
-- [ ] Day 54: Create categories list page.
-- [ ] Day 55: Create budget list page.
-- [ ] Day 56: Add form to add transaction.
+- [x] Day 50: Add HTML templates folder.
+- [x] Day 51: Add `/ui` route.
+- [x] Day 52: Create base layout template.
+- [x] Day 53: Create transactions list page.
+- [x] Day 54: Create categories list page.
+- [x] Day 55: Create budget list page.
+- [x] Day 56: Add form to add transaction.
 
 ## Week 9: UI Enhancements
-- [ ] Day 57: Add date filter for transactions.
-- [ ] Day 58: Add category filter.
-- [ ] Day 59: Add monthly summary page.
-- [ ] Day 60: Add minimal CSS styling.
-- [ ] Day 61: Add delete buttons with POST.
-- [ ] Day 62: Add UI error handling.
-- [ ] Day 63: Add navigation links.
+- [x] Day 57: Add date filter for transactions.
+- [x] Day 58: Add category filter.
+- [x] Day 59: Add monthly summary page.
+- [x] Day 60: Add minimal CSS styling.
+- [x] Day 61: Add delete buttons with POST.
+- [x] Day 62: Add UI error handling.
+- [x] Day 63: Add navigation links.
 
 ## Week 10: Polishing
 - [ ] Day 64: Add JSON schema/validation.

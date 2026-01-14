@@ -3,6 +3,7 @@ package main
 import (
 	"encoding/json"
 	"errors"
+	"fmt"
 	"html/template"
 	"log"
 	"net/http"
@@ -91,8 +92,13 @@ func writeJSON(w http.ResponseWriter, status int, v any) {
 }
 
 func decodeJSON(r *http.Request, out any) error {
-	if err := json.NewDecoder(r.Body).Decode(out); err != nil {
-		return errors.New("invalid JSON body")
+	dec := json.NewDecoder(r.Body)
+	dec.DisallowUnknownFields()
+	if err := dec.Decode(out); err != nil {
+		return fmt.Errorf("invalid JSON body: %w", err)
+	}
+	if dec.More() {
+		return errors.New("invalid JSON body: multiple JSON values are not allowed")
 	}
 	return nil
 }

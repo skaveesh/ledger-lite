@@ -47,3 +47,18 @@ func TestBudgetsPostThenGet(t *testing.T) {
 		t.Fatalf("GET /budgets response = %+v, want one budget amount 150000", list)
 	}
 }
+
+func TestBudgetsPostInvalidJSONUnknownField(t *testing.T) {
+	_, router := newTestServer()
+
+	rr := performRequest(t, router, http.MethodPost, "/budgets", map[string]any{
+		"categoryID":       1,
+		"month":            3,
+		"year":             2026,
+		"amountLimitCents": 150000,
+		"extra":            "unknown",
+	})
+	if rr.Code != http.StatusBadRequest {
+		t.Fatalf("POST /budgets with unknown field status = %d, want %d", rr.Code, http.StatusBadRequest)
+	}
+}
