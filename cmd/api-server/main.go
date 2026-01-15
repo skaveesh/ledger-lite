@@ -1,16 +1,20 @@
 package main
 
 import (
+	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
 	"html/template"
 	"log"
 	"net/http"
+	"os"
+	"os/signal"
 	"path/filepath"
 	"sort"
 	"strconv"
 	"strings"
+	"syscall"
 	"time"
 
 	"github.com/skaveesh/ledger-lite/internal/domain"
@@ -569,6 +573,18 @@ func main() {
 		Addr:    ":8080",
 		Handler: app.router(),
 	}
+
+	stopCtx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
+	defer stop()
+
+	go func() {
+		<-stopCtx.Done()
+		shutdownCtx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+		defer cancel()
+		if err := server.Shutdown(shutdownCtx); err != nil {
+			log.Printf("graceful shutdown error: %v", err)
+		}
+	}()
 
 	log.Println("api server listening on :8080")
 	if err := server.ListenAndServe(); err != nil && err != http.ErrServerClosed {
