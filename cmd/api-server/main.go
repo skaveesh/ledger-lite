@@ -8,11 +8,10 @@ import (
 	"log"
 	"net/http"
 	"path/filepath"
+	"sort"
 	"strconv"
 	"strings"
 	"time"
-
-	"sort"
 
 	"github.com/skaveesh/ledger-lite/internal/domain"
 	"github.com/skaveesh/ledger-lite/internal/store"
@@ -60,6 +59,22 @@ func (a *api) withErrorHandling(next http.HandlerFunc) http.HandlerFunc {
 	}
 }
 
+func requestLoggingMiddleware(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		start := time.Now()
+		rec := &statusRecorder{ResponseWriter: w, status: http.StatusOK}
+		next.ServeHTTP(rec, r)
+		log.Printf("%s %s status=%d duration_ms=%d", r.Method, r.URL.Path, rec.status, time.Since(start).Milliseconds())
+	})
+}
+
+func applyMiddleware(h http.Handler, m ...func(http.Handler) http.Handler) http.Handler {
+	for i := len(m) - 1; i >= 0; i-- {
+		h = m[i](h)
+	}
+	return h
+}
+
 func (a *api) router() http.Handler {
 	mux := http.NewServeMux()
 	mux.HandleFunc("/", a.withErrorHandling(func(w http.ResponseWriter, _ *http.Request) {
@@ -82,7 +97,17 @@ func (a *api) router() http.Handler {
 	mux.HandleFunc("/ui/categories", a.withErrorHandling(a.handleUICategories))
 	mux.HandleFunc("/ui/budgets", a.withErrorHandling(a.handleUIBudgets))
 	mux.HandleFunc("/ui/summary", a.withErrorHandling(a.handleUIMonthlySummary))
-	return mux
+	return applyMiddleware(mux, requestLoggingMiddleware)
+}
+
+type statusRecorder struct {
+	http.ResponseWriter
+	status int
+}
+
+func (sr *statusRecorder) WriteHeader(status int) {
+	sr.status = status
+	sr.ResponseWriter.WriteHeader(status)
 }
 
 func writeJSON(w http.ResponseWriter, status int, v any) {
