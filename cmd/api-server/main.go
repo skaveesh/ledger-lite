@@ -16,6 +16,7 @@ import (
 	"strings"
 	"syscall"
 	"time"
+	"sync/atomic"
 
 	"github.com/skaveesh/ledger-lite/internal/domain"
 	"github.com/skaveesh/ledger-lite/internal/store"
@@ -63,12 +64,40 @@ func (a *api) withErrorHandling(next http.HandlerFunc) http.HandlerFunc {
 	}
 }
 
+type contextKey string
+
+const requestIDContextKey contextKey = "request_id"
+
+var requestIDCounter uint64
+
+func nextRequestID() string {
+	id := atomic.AddUint64(&requestIDCounter, 1)
+	return fmt.Sprintf("req-%d", id)
+}
+
+func requestIDMiddleware(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		requestID := strings.TrimSpace(r.Header.Get("X-Request-ID"))
+		if requestID == "" {
+			requestID = nextRequestID()
+		}
+		w.Header().Set("X-Request-ID", requestID)
+		r = r.WithContext(context.WithValue(r.Context(), requestIDContextKey, requestID))
+		next.ServeHTTP(w, r)
+	})
+}
+
+func requestIDFromContext(ctx context.Context) string {
+	id, _ := ctx.Value(requestIDContextKey).(string)
+	return id
+}
+
 func requestLoggingMiddleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		start := time.Now()
 		rec := &statusRecorder{ResponseWriter: w, status: http.StatusOK}
 		next.ServeHTTP(rec, r)
-		log.Printf("%s %s status=%d duration_ms=%d", r.Method, r.URL.Path, rec.status, time.Since(start).Milliseconds())
+		log.Printf("request_id=%s %s %s status=%d duration_ms=%d", requestIDFromContext(r.Context()), r.Method, r.URL.Path, rec.status, time.Since(start).Milliseconds())
 	})
 }
 
@@ -101,7 +130,7 @@ func (a *api) router() http.Handler {
 	mux.HandleFunc("/ui/categories", a.withErrorHandling(a.handleUICategories))
 	mux.HandleFunc("/ui/budgets", a.withErrorHandling(a.handleUIBudgets))
 	mux.HandleFunc("/ui/summary", a.withErrorHandling(a.handleUIMonthlySummary))
-	return applyMiddleware(mux, requestLoggingMiddleware)
+	return applyMiddleware(mux, requestIDMiddleware, requestLoggingMiddleware)
 }
 
 type statusRecorder struct {
