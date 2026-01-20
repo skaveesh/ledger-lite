@@ -14,9 +14,9 @@ import (
 	"sort"
 	"strconv"
 	"strings"
+	"sync/atomic"
 	"syscall"
 	"time"
-	"sync/atomic"
 
 	"github.com/skaveesh/ledger-lite/internal/domain"
 	"github.com/skaveesh/ledger-lite/internal/store"
@@ -69,6 +69,8 @@ type contextKey string
 const requestIDContextKey contextKey = "request_id"
 
 var requestIDCounter uint64
+var totalRequests uint64
+var totalServerErrors uint64
 
 func nextRequestID() string {
 	id := atomic.AddUint64(&requestIDCounter, 1)
@@ -97,6 +99,10 @@ func requestLoggingMiddleware(next http.Handler) http.Handler {
 		start := time.Now()
 		rec := &statusRecorder{ResponseWriter: w, status: http.StatusOK}
 		next.ServeHTTP(rec, r)
+		atomic.AddUint64(&totalRequests, 1)
+		if rec.status >= 500 {
+			atomic.AddUint64(&totalServerErrors, 1)
+		}
 		log.Printf("request_id=%s %s %s status=%d duration_ms=%d", requestIDFromContext(r.Context()), r.Method, r.URL.Path, rec.status, time.Since(start).Milliseconds())
 	})
 }
@@ -130,6 +136,7 @@ func (a *api) router() http.Handler {
 	mux.HandleFunc("/ui/categories", a.withErrorHandling(a.handleUICategories))
 	mux.HandleFunc("/ui/budgets", a.withErrorHandling(a.handleUIBudgets))
 	mux.HandleFunc("/ui/summary", a.withErrorHandling(a.handleUIMonthlySummary))
+	mux.HandleFunc("/metrics", a.withErrorHandling(a.handleMetrics))
 	return applyMiddleware(mux, requestIDMiddleware, requestLoggingMiddleware)
 }
 
@@ -594,6 +601,16 @@ func (a *api) handleUIMonthlySummary(w http.ResponseWriter, r *http.Request) {
 		SummaryTotalCents: total,
 		SummaryRows:       rows,
 	})
+}
+
+func (a *api) handleMetrics(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodGet {
+		writeJSON(w, http.StatusMethodNotAllowed, apiError{Error: "method not allowed"})
+		return
+	}
+	w.Header().Set("Content-Type", "text/plain; charset=utf-8")
+	_, _ = fmt.Fprintf(w, "requests_total %d\n", atomic.LoadUint64(&totalRequests))
+	_, _ = fmt.Fprintf(w, "server_errors_total %d\n", atomic.LoadUint64(&totalServerErrors))
 }
 
 func main() {
